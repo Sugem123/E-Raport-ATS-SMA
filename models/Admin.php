@@ -179,4 +179,24 @@ class Admin
             "message" => "Berhasil menghapus admin."
         ];
     }
+
+    public function getAll(): array
+    {
+        $query = mysqli_query(
+            $this->conn,
+            "SELECT *
+             FROM tb_user
+             INNER JOIN tb_admin
+             ON tb_user.id_user = tb_admin.id_user
+             ORDER BY tb_user.id_user ASC"
+        );
+
+        $data = [];
+
+        while ($row = mysqli_fetch_assoc($query)) {
+            $data[] = $row;
+        }
+
+        return $data;
+    }
 }

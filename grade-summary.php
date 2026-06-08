@@ -1,36 +1,17 @@
 <?php
 include_once "config/Database.php";
+include_once "models/Student.php";
 
 $db = new Database();
 $conn = $db->connect();
 
-$id_siswa = $_SESSION["id"];
+$student = new Student($conn);
 
-// Data siswa
-$stmt = mysqli_prepare($conn,"
-    SELECT *
-    FROM tb_siswa s
-    INNER JOIN tb_user u
-        ON u.id_user = s.id_user
-    WHERE s.nis = ?
-");
+$idSiswa = $_SESSION['id'];
 
-mysqli_stmt_bind_param($stmt,"s",$id_siswa);
-mysqli_stmt_execute($stmt);
+$header = $student->getById($idSiswa);
 
-$header = mysqli_fetch_assoc(
-    mysqli_stmt_get_result($stmt)
-);
-
-// Data nilai siswa
-$stmt2 = mysqli_prepare($conn,"
-    SELECT * FROM tb_nilai n INNER JOIN tb_siswa s ON s.nis = n.nis INNER JOIN tb_guru g ON g.id_guru = n.id_guru_matpel WHERE n.nis = ?
-");
-
-mysqli_stmt_bind_param($stmt2,"s",$id_siswa);
-mysqli_stmt_execute($stmt2);
-
-$detail = mysqli_stmt_get_result($stmt2);
+$detail = $student->getGrades($idSiswa);
 ?>
 
 <div class="col-lg-9 mt-2">
@@ -44,7 +25,7 @@ $detail = mysqli_stmt_get_result($stmt2);
                 <div class="col-md-4">
                     <div class="form-floating mb-3">
                         <input class="form-control"
-                            value="<?=$id_siswa?>"
+                            value="<?=$idSiswa?>"
                             readonly>
                         <label>NIS</label>
                     </div>

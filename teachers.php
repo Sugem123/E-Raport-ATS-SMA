@@ -1,17 +1,15 @@
 <?php
 include_once "config/Database.php";
+require_once "models/Teacher.php";
 
 $db = new Database();
 $conn = $db->connect();
 
-$query = mysqli_query($conn, "SELECT * FROM tb_user 
-INNER JOIN tb_guru ON tb_user.id_user = tb_guru.id_user
-ORDER BY tb_user.id_user ASC");
-$result = [];
-while ($record = mysqli_fetch_array($query)) {
-    $result[] = $record;
-}
+$teacher = new Teacher($conn);
+
+$teachers = $teacher->getAll();
 ?>
+
 <div class="col-lg-9 mt-2">
     <div class="card">
         <div class="card-header">
@@ -33,7 +31,7 @@ while ($record = mysqli_fetch_array($query)) {
                         </div>
                         <div class="modal-body">
                             <form class="needs-validation" novalidate action="controllers\teacher.php" method="POST">
-    <input type="hidden" name="action" value="input">
+                                <input type="hidden" name="action" value="input">
                                 <div class="row">
                                     <div class="col-lg-12">
                                         <div class="alert alert-info" role="alert">
@@ -105,7 +103,7 @@ while ($record = mysqli_fetch_array($query)) {
             </div>
             <!-- Akhir Modal Tambah Guru Baru -->
             <?php
-            foreach ($result as $row) {
+            foreach ($teachers as $row) {
             ?>
             <!-- Modal Edit Guru -->
             <div class="modal fade" id="ModalUpdateTeacher<?php echo $row['id_user']?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -172,7 +170,7 @@ while ($record = mysqli_fetch_array($query)) {
                         </div>
                         <div class="modal-body">
                             <form class="needs-validation" novalidate action="controllers\teacher.php" method="POST">
-    <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<?= $row['id_user']; ?>">
                                 <div class="col-lg-12">
                                     <?php if ($row['username'] == $_SESSION['username']) { ?>
@@ -226,7 +224,7 @@ while ($record = mysqli_fetch_array($query)) {
             <!-- Akhir Modal Reset Password -->
             <?php
             }
-            if (empty($result)) {
+            if (empty($teachers)) {
                 echo "Data user tidak ada.";
             } else {
             ?>
@@ -245,7 +243,7 @@ while ($record = mysqli_fetch_array($query)) {
                         <tbody>
                         <?php
                         $no = 1;
-                        foreach ($result as $row) {
+                        foreach ($teachers as $row) {
                         ?>
                             <tr>
                                 <td scope="row"><?php echo $no++ ?></th>

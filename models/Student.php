@@ -258,5 +258,82 @@ class Student
             'message' => 'Berhasil menghapus siswa'
         ];
     }
+
+    public function getAll(): array
+    {
+        $query = mysqli_query(
+            $this->conn,
+            "SELECT * 
+            FROM tb_user 
+            INNER JOIN tb_siswa ON tb_user.id_user = tb_siswa.id_user
+            ORDER BY tb_user.id_user ASC"
+        );
+
+        $data = [];
+
+        while ($row = mysqli_fetch_assoc($query)) {
+            $data[] = $row;
+        }
+
+        return $data;
+    }
+
+    public function getById(
+        string $idSiswa
+    ): ?array {
+        // Mendapatkan data siswa berdasarkan id siswa
+        // untuk halaman rangkuman nilai siswa
+        $stmt = mysqli_prepare(
+            $this->conn,
+            "SELECT *
+            FROM tb_siswa s
+            INNER JOIN tb_user u ON u.id_user = s.id_user
+            WHERE s.nis = ?"
+        );
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            "s",
+            $idSiswa
+        );
+
+        mysqli_stmt_execute($stmt);
+
+        return mysqli_fetch_assoc(
+            mysqli_stmt_get_result($stmt)
+        );
+    }
+
+    public function getGrades(
+        string $idGuru
+    ): array {
+        // Mendapatkan daftar nilai siswa berdasarkan id siswa
+        $stmt = mysqli_prepare(
+            $this->conn,
+            "SELECT *
+            FROM tb_nilai n
+            INNER JOIN tb_siswa s ON s.nis = n.nis
+            INNER JOIN tb_guru g ON g.id_guru = n.id_guru_matpel
+            WHERE n.nis = ?"
+        );
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            "s",
+            $idGuru
+        );
+
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+
+        $data = [];
+
+        while ($row = mysqli_fetch_assoc($result)) {
+            $data[] = $row;
+        }
+
+        return $data;
+    }
 }
 ?>

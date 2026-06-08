@@ -1,43 +1,17 @@
 <?php
 include_once "config/Database.php";
-$id_guru = $_SESSION["id"];
-
-require_once "config/Database.php";
+include_once "models/Teacher.php";
 
 $db = new Database();
 $conn = $db->connect();
 
-$id_guru = $_SESSION["id"];
+$teacher = new Teacher($conn);
 
-// Data guru
-$stmt = mysqli_prepare(
-    $conn,
-    "SELECT * FROM tb_guru 
-     INNER JOIN tb_user 
-     ON tb_guru.id_user = tb_user.id_user
-     WHERE tb_guru.id_guru = ?"
-);
+$idGuru = $_SESSION['id'];
 
-mysqli_stmt_bind_param($stmt, "s", $id_guru);
-mysqli_stmt_execute($stmt);
+$header = $teacher->getById($idGuru);
 
-$header = mysqli_fetch_assoc(
-    mysqli_stmt_get_result($stmt)
-);
-
-// Data nilai siswa
-$stmt2 = mysqli_prepare(
-    $conn,
-    "SELECT * FROM tb_nilai n
-     INNER JOIN tb_siswa s 
-     ON s.nis = n.nis
-     WHERE n.id_guru_matpel = ?"
-);
-
-mysqli_stmt_bind_param($stmt2, "s", $id_guru);
-mysqli_stmt_execute($stmt2);
-
-$detail = mysqli_stmt_get_result($stmt2);
+$detail = $teacher->getGrades($idGuru);
 ?>
 
 <div class="col-lg-9 mt-2">
@@ -57,7 +31,7 @@ $detail = mysqli_stmt_get_result($stmt2);
                         <div class="modal-body">
                             <form class="needs-validation" novalidate action="controllers/grade.php" method="POST">
                                 <input type="hidden" name="action" value="input">
-                                <input type="hidden" name="id" value="<?= $id_guru ?>">
+                                <input type="hidden" name="id" value="<?= $idGuru ?>">
                                 
                                 <div class="row">
                                     <div class="col-lg-6">
@@ -193,7 +167,7 @@ $detail = mysqli_stmt_get_result($stmt2);
             <!-- List Nilai Siswa dari Semua Kelas -->
             <h5 class="mt-4">List Nilai Siswa</h5>
             <?php
-            if (mysqli_num_rows($detail) == 0) {
+            if (empty($detail)) {
                 echo "<div class='alert alert-warning mt-3'>Data detail nilai siswa belum ada.</div>";
             } else {
             ?>

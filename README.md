@@ -4,19 +4,19 @@ Sistem ini membagi hak akses ke dalam 3 level pengguna dengan matriks kebutuhan 
 
 ## Admin
 Admin memiliki hak akses penuh terhadap sistem, meliputi:
-• menambah data,
-• melihat data,
-• mengubah data,
-• menghapus data (CRUD),
-• serta mengelola laporan.
+    - menambah data,
+    - melihat data,
+    - mengubah data,
+    - menghapus data (CRUD),
+    - serta mengelola laporan.
 
 ## Guru
 Guru bertugas:
-• menginput nilai siswa,
-• melihat rekap nilai,
-• memvalidasi nilai siswa sesuai mata pelajaran.
+    - menginput nilai siswa,
+    - melihat rekap nilai,
+    - memvalidasi nilai siswa sesuai mata pelajaran.
 
 ## Siswa
 Siswa dapat:
-• melihat nilai pribadi,
-• melihat status kelulusan.
+    - melihat nilai pribadi,
+    - melihat status kelulusan.

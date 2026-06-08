@@ -1,22 +1,14 @@
 <?php
 include_once "config/Database.php";
+require_once "models/Admin.php";
 
 $db = new Database();
 $conn = $db->connect();
 
-$query = mysqli_query(
-    $conn,
-    "SELECT * FROM tb_user
-     INNER JOIN tb_admin
-     ON tb_user.id_user = tb_admin.id_user
-     ORDER BY tb_user.id_user ASC"
-);
+$admin = new Admin($conn);
 
-$result = [];
-
-while ($record = mysqli_fetch_array($query)) {
-    $result[] = $record;
-}
+// Untuk mendapatkan data admin
+$admins = $admin->getAll();
 ?>
 <div class="col-lg-9 mt-2">
     <div class="card">
@@ -89,7 +81,7 @@ while ($record = mysqli_fetch_array($query)) {
             </div>
             <!-- Akhir Modal Tambah Admin Baru -->
             <?php
-            foreach ($result as $row) {
+            foreach ($admins as $row) {
             ?>
             <!-- Modal View -->
             <div class="modal fade" id="ModalView<?php echo $row['id_user']?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -223,7 +215,7 @@ while ($record = mysqli_fetch_array($query)) {
             <!-- Akhir Modal Reset Password -->
             <?php
             }
-            if (empty($result)) {
+            if (empty($admins)) {
                 echo "Data user tidak ada.";
             } else {
             ?>
@@ -240,7 +232,7 @@ while ($record = mysqli_fetch_array($query)) {
                         <tbody>
                             <?php
                             $no = 1;
-                            foreach ($result as $row) {
+                            foreach ($admins as $row) {
                             ?>
                                 <tr>
                                     <th scope="row"><?php echo $no++ ?></th>
