@@ -1,0 +1,22 @@
+.btn-orange {
+    background-color: #ff9800;
+    border-color: #fb8c00;
+    color: #ffffff;
+}
+
+/* Efek saat tombol disentuh/diklik */
+.btn-orange:hover {
+    background-color: #f57c00;
+    border-color: #ef6c00;
+    color: #ffffff;
+}
+
+.bg-orange {
+    background-color: #ff9800;
+    color: #ffffff;
+}
+
+.nav-pills .nav-link.active {
+    background-color: #ff9800;
+    color: white !important;
+}
