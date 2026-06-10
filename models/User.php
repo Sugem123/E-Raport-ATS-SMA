@@ -14,7 +14,7 @@ class User
     }
 
     // Method login untuk memverifikasi username dan password
-    public function login($username, $password): array
+    public function login($username, $password, $role): array
     {
         // Menyiapkan query untuk mencari user berdasarkan username
         $stmt = mysqli_prepare(
@@ -31,8 +31,8 @@ class User
             mysqli_stmt_get_result($stmt)
         );
 
-        // Jika user tidak ditemukan atau password salah
-        if (!$result || !password_verify($password, $result['password'])) {
+        // Jika user tidak ditemukan, password salah, atau role tidak sesuai
+        if (!$result || !password_verify($password, $result['password']) || $role !== $result['role']) {
             return [
                 'success' => false
             ];

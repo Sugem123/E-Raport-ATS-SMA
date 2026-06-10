@@ -1,4 +1,6 @@
 <?php
+require_once 'config/Config.php';
+
     if(empty($_SESSION['username'])) {
         header('location:login');
     }
@@ -12,12 +14,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>e-Raport SMAN 67 Tangerang</title>
-    <link rel="stylesheet" href="../vendor/bootstrap-5.3.8/css/bootstrap.min.css">
+    <link rel="stylesheet" href="<?= $base_url ?>vendor/bootstrap-5.3.8/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com">
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="<?= $base_url ?>assets/css/style.css">
     <script src="https://unpkg.com"></script>
-    <script src="/assets/js/main.js"></script>
+    <script src="<?= $base_url ?>assets/js/main.js"></script>
 </head>
 <body>
     <!-- HEADER -->
@@ -43,6 +45,6 @@
             </div>
          </div>
      </div>
-    <script src="../vendor/bootstrap-5.3.8/js/bootstrap.bundle.min.js"></script>
+    <script src="<?= $base_url ?>vendor/bootstrap-5.3.8/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

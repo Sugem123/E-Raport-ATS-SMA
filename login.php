@@ -1,4 +1,5 @@
 <?php
+require_once 'config/Config.php';
 if (!empty($_SESSION['email_cafe'])) {
   header('location:home');
 }
@@ -20,10 +21,10 @@ if (!empty($_SESSION['email_cafe'])) {
     rel="canonical"
     href="https://getbootstrap.com/docs/5.3/examples/sign-in/" />
   <script src="../assets/js/color-modes.js"></script>
-  <link href="../vendor/bootstrap-5.3.8/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="<?= $base_url ?>vendor/bootstrap-5.3.8/css/bootstrap.min.css" rel="stylesheet" />
   <meta name="theme-color" content="#712cf9" />
-  <link href="assets/css/login.css" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css" />
+  <link href="<?= $base_url ?>assets/css/login.css" rel="stylesheet" />
+  <link rel="stylesheet" href="<?= $base_url ?>assets/css/style.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
   <style>
     .bd-placeholder-img {
@@ -166,6 +167,18 @@ if (!empty($_SESSION['email_cafe'])) {
         <label for="floatingPassword">Password</label>
         <div class="invalid-feedback">
           Masukkan password.
+        </div>
+      </div>
+      <div class="form-floating">
+        <select class="form-select" aria-label="Default select example" name="role" required>
+          <option selected hidden value="">Pilih Role User</option>
+          <option value="admin">Admin</option>
+          <option value="guru">Guru</option>
+          <option value="siswa">Siswa</option>
+        </select>
+        <label for="floatingRole">Role</label>
+        <div class="invalid-feedback">
+          Pilih role.
         </div>
       </div>
       <div class="form-check text-start my-3">

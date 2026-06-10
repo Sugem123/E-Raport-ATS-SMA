@@ -24,15 +24,16 @@ if (empty($_POST['submit_validate'])) {
 // Mengambil data username dan password dari form
 $username = trim($_POST['username'] ?? '');
 $password = $_POST['pass'] ?? '';
+$role = $_POST['role'] ?? '';
 
 // Memproses login menggunakan method login() pada model User
-$result = $userModel->login($username, $password);
+$result = $userModel->login($username, $password, $role);
 
 // Jika login gagal
 if (!$result['success']) {
 
     echo "<script>
-        alert('Username atau password salah');
+        alert('Username, password, atau role salah.');
         window.location='../login';
     </script>";
 

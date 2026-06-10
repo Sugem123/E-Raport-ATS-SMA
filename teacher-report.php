@@ -16,6 +16,12 @@ if (isset($_GET['id'])) {
         WHERE tb_guru.id_user = '$id'
     "));
 
+    // Cek apakah data ditemukan
+    if (!$header) {
+        echo "<script>alert('Data dengan ID tersebut tidak ditemukan!');
+        window.location='teachers'</script>";
+    }
+
     $detail = mysqli_query($conn,"
         SELECT * FROM tb_nilai n
         INNER JOIN tb_siswa s ON s.nis = n.nis
