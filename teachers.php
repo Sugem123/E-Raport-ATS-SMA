@@ -6,290 +6,218 @@ $db = new Database();
 $conn = $db->connect();
 
 $teacher = new Teacher($conn);
-
 $teachers = $teacher->getAll();
 ?>
 
 <div class="col-lg-9 mt-2">
-    <div class="card">
-        <div class="card-header">
-            Halaman Guru
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold text-primary"><i class="fa-solid fa-chalkboard-user me-2"></i>Data Guru</h5>
+            <div class="d-flex gap-2">
+                <a href="controllers/template.php?type=guru" class="btn btn-outline-success btn-sm">
+                    <i class="fa-solid fa-file-excel me-1"></i> Download Template
+                </a>
+                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#ModalUploadTeacher">
+                    <i class="fa-solid fa-upload me-1"></i> Upload Excel
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#ModalInputTeacher">
+                    <i class="fa-solid fa-plus me-1"></i> Tambah Guru
+                </button>
+            </div>
         </div>
         <div class="card-body">
-            <div class="row">
-                <div class="col d-flex justify-content-end">
-                    <button type="button" class="btn btn-orange" data-bs-toggle="modal" data-bs-target="#ModalInputTeacher">Tambah Guru</button>
-                </div>
-            </div>
-            <!-- Modal Tambah Guru Baru -->
-            <div class="modal fade" id="ModalInputTeacher" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-xl modal-fullscreen-md-down">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h1 class="modal-title fs-5" id="exampleModalLabel">Tambah Guru Baru</h1>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form class="needs-validation" novalidate action="controllers\teacher.php" method="POST">
-                                <input type="hidden" name="action" value="input">
-                                <div class="row">
-                                    <div class="col-lg-12">
-                                        <div class="alert alert-info" role="alert">
-                                            Password default untuk guru baru adalah <strong>12345</strong>. Mohon untuk segera mereset password setelah guru baru berhasil dibuat.
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12">
-                                        <div class="form-floating mb-3">
-                                            <input type="text" class="form-control" id="floatingInput" placeholder="Guru ID" name="guru_id" required>
-                                            <label for="floatingInput">Guru ID</label>
-                                            <div class="invalid-feedback">
-                                                Masukkan ID guru.
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12">
-                                        <div class="form-floating mb-3">
-                                            <input type="text" class="form-control" id="floatingInput" placeholder="Username" name="username" required>
-                                            <label for="floatingInput">Username</label>
-                                            <div class="invalid-feedback">
-                                                Masukkan username.
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12">
-                                        <div class="form-floating mb-3">
-                                            <input type="text" class="form-control" id="floatingInput" placeholder="Nama Guru" name="nama_guru" required>
-                                            <label for="floatingInput">Nama Guru</label>
-                                            <div class="invalid-feedback">
-                                                Masukkan nama guru.
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12">
-                                        <div class="form-floating mb-3">
-                                            <input type="text" class="form-control" id="floatingInput" placeholder="Mata Pelajaran" name="mata_pelajaran" required>
-                                            <label for="floatingInput">Mata Pelajaran</label>
-                                            <div class="invalid-feedback">
-                                                Masukkan mata pelajaran.
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <input type="hidden" name="role" value="guru">
-                                <div class="row">
-                                    <div class="col-lg-12">
-                                        <div class="form-floating mb-3">
-                                            <input type="password" class="form-control" id="floatingPassword" placeholder="Password" readonly value="12345" name="pass">
-                                            <label for="floatingPassword">Password</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    <button type="submit" class="btn btn-primary" name="input_teacher_validate" value="12345">Save changes</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- Akhir Modal Tambah Guru Baru -->
-            <?php
-            foreach ($teachers as $row) {
-            ?>
-            <!-- Modal Edit Guru -->
-            <div class="modal fade" id="ModalUpdateTeacher<?php echo $row['id_user']?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-xl modal-fullscreen-md-down">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h1 class="modal-title fs-5" id="exampleModalLabel">Edit Guru</h1>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form class="needs-validation" novalidate action="controllers\teacher.php" method="POST">
-                                <input type="hidden" name="action" value="update">
-                                <input type="hidden" name="id" value="<?= $row['id_user']; ?>">
-                                <div class="row">
-                                    <div class="col-lg-12">
-                                        <div class="form-floating mb-3">
-                                            <input type="text" class="form-control" id="floatingInput" placeholder="Username" name="username" value="<?php echo $row['username']?>" required>
-                                            <label for="floatingInput">Username</label>
-                                            <div class="invalid-feedback">
-                                                Masukkan username.
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12">
-                                        <div class="form-floating mb-3">
-                                            <input type="text" class="form-control" id="floatingInput" placeholder="Your Name" name="nama_guru" value="<?php echo $row['nama_guru']?>" required>
-                                            <label for="floatingInput">Nama Guru</label>
-                                            <div class="invalid-feedback">
-                                                Masukkan nama guru.
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12">
-                                        <div class="form-floating mb-3">
-                                            <input type="text" class="form-control" id="floatingInput" placeholder="Mata Pelajaran" name="mata_pelajaran" value="<?php echo $row['mata_pelajaran']?>" required>
-                                            <label for="floatingInput">Mata Pelajaran</label>
-                                            <div class="invalid-feedback">
-                                                Masukkan mata pelajaran.
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    <button type="submit" class="btn btn-warning" name="input_teacher_validate" value="12345">Update</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- Akhir Modal Edit Guru -->
-            <!-- Modal Delete Guru -->
-            <div class="modal fade" id="ModalDeleteTeacher<?php echo $row['id_user']?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-xl modal-fullscreen-md-down">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h1 class="modal-title fs-5" id="exampleModalLabel">Hapus Guru</h1>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form class="needs-validation" novalidate action="controllers\teacher.php" method="POST">
-                                <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="id" value="<?= $row['id_user']; ?>">
-                                <div class="col-lg-12">
-                                    <?php if ($row['username'] == $_SESSION['username']) { ?>
-                                        <div class="alert alert-danger" role="alert">
-                                            Anda tidak dapat menghapus guru <strong><?php echo $row['username']?></strong> karena sedang digunakan untuk login.
-                                        </div>
-                                    <?php } else { ?>
-                                        Apa Anda yakin ingin menghapus guru <strong><?php echo $row['username']?></strong>?
-                                    <?php } ?>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    <button type="submit" class="btn btn-danger" name="input_teacher_validate" value="12345" <?php if ($row['username'] == $_SESSION['username']) { echo "disabled"; } ?>>Delete</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- Akhir Modal Delete Guru -->
-            <!-- Modal Reset Password -->
-            <div class="modal fade" id="ModalResetPass<?php echo $row['id_user']?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-md modal-fullscreen-md-down">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h1 class="modal-title fs-5" id="exampleModalLabel">Reset Password</h1>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form class="needs-validation" novalidate action="controllers/user.php" method="POST">
-                                <input type="hidden" name="action" value="reset_password">
-                                <input type="hidden" name="id" value="<?= $row['id_user']; ?>">
-                                <div class="col-lg-12">
-                                    <?php if ($row['username'] == $_SESSION['username']) { ?>
-                                        <div class="alert alert-danger" role="alert">
-                                            Anda tidak dapat mereset password guru <strong><?php echo $row['username']?></strong> karena sedang digunakan untuk login.
-                                        </div>
-                                    <?php } else { ?>
-                                        Apakah Anda yakin ingin mereset password guru <strong><?php echo $row['username']?></strong> menjadi <strong>12345</strong>?
-                                    <?php } ?>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    <button type="submit" class="btn btn-success" name="input_user_validate" value="12345" <?php if ($row['username'] == $_SESSION['username']) { echo "disabled"; } ?>>Reset</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- Akhir Modal Reset Password -->
-            <?php
-            }
-            if (empty($teachers)) {
-                echo "Data user tidak ada.";
-            } else {
-            ?>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col">No</th>
-                                <th scope="col">ID Guru</th>
-                                <th scope="col">Username</th>
-                                <th scope="col">Nama Guru</th>
-                                <th scope="col">Mata Pelajaran</th>
-                                <th scope="col">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php
-                        $no = 1;
-                        foreach ($teachers as $row) {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 5%">No</th>
+                            <th>ID Guru / NIP</th>
+                            <th>Nama Lengkap</th>
+                            <th>Username Akun</th>
+                            <th style="width: 15%">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($teachers)) { ?>
+                            <tr><td colspan="5" class="text-center py-4 text-muted">Belum ada data guru.</td></tr>
+                        <?php } else {
+                            $no = 1;
+                            foreach ($teachers as $row) {
                         ?>
                             <tr>
-                                <td scope="row"><?php echo $no++ ?></th>
-                                <td><?php echo $row['id_guru'] ?></td>
-                                <td><?php echo $row['username'] ?></td>
-                                <td><?php echo $row['nama_guru'] ?></td>
-                                <td><?php echo $row['mata_pelajaran'] ?></td>
+                                <td><?= $no++ ?></td>
+                                <td class="font-monospace fw-bold text-dark"><?= htmlspecialchars($row['id_guru']) ?></td>
+                                <td class="fw-semibold"><?= htmlspecialchars($row['nama_guru']) ?></td>
+                                <td><code><?= htmlspecialchars($row['username']) ?></code></td>
                                 <td>
-                                    <div class="d-flex">
-                                        <button class="btn btn-info btn-sm me-1" onclick="location.href='teacher-detail?id=<?php echo $row['id_user'] ?>'"><i class="fa fa-eye"></i></button>
-                                        <button class="btn btn-warning btn-sm me-1" data-bs-toggle="modal" data-bs-target="#ModalUpdateTeacher<?php echo $row['id_user']?>"><i class="fa fa-edit"></i></button>
-                                        <button class="btn btn-danger btn-sm me-1" data-bs-toggle="modal" data-bs-target="#ModalDeleteTeacher<?php echo $row['id_user']?>"><i class="fa fa-trash"></i></button>
-                                        <button class="btn btn-secondary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#ModalResetPass<?php echo $row['id_user']?>"><i class="fa fa-key"></i></button>
-                                    </div>
+                                    <button class="btn btn-warning btn-sm me-1" data-bs-toggle="modal" data-bs-target="#ModalUpdateTeacher<?= $row['id_user'] ?>" title="Edit">
+                                        <i class="fa fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-danger btn-sm me-1" data-bs-toggle="modal" data-bs-target="#ModalDeleteTeacher<?= $row['id_user'] ?>" title="Hapus">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#ModalResetPass<?= $row['id_user'] ?>" title="Reset Password">
+                                        <i class="fa fa-key"></i>
+                                    </button>
                                 </td>
                             </tr>
-                        <?php
-                        }
-                        ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php
-            }
-            ?>
+
+                            <!-- Modal Edit Guru -->
+                            <div class="modal fade" id="ModalUpdateTeacher<?= $row['id_user'] ?>" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form action="controllers/teacher.php" method="POST">
+                                            <input type="hidden" name="action" value="update">
+                                            <input type="hidden" name="id_user" value="<?= $row['id_user'] ?>">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Edit Data Guru</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">ID Guru / NIP</label>
+                                                    <input type="text" class="form-control" value="<?= htmlspecialchars($row['id_guru']) ?>" readonly>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Nama Guru</label>
+                                                    <input type="text" class="form-control" name="nama_guru" value="<?= htmlspecialchars($row['nama_guru']) ?>" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Username Login</label>
+                                                    <input type="text" class="form-control" name="username" value="<?= htmlspecialchars($row['username']) ?>" required>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Modal Delete Guru -->
+                            <div class="modal fade" id="ModalDeleteTeacher<?= $row['id_user'] ?>" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form action="controllers/teacher.php" method="POST">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id_user" value="<?= $row['id_user'] ?>">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Hapus Guru</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                Apakah Anda yakin ingin menghapus guru <strong><?= htmlspecialchars($row['nama_guru']) ?></strong>?
+                                                <br><small class="text-danger">*Penugasan mengajar guru ini akan ikut terhapus.</small>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                <button type="submit" class="btn btn-danger">Hapus</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Modal Reset Password -->
+                            <div class="modal fade" id="ModalResetPass<?= $row['id_user'] ?>" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form action="controllers/user.php" method="POST">
+                                            <input type="hidden" name="action" value="reset_password">
+                                            <input type="hidden" name="id" value="<?= $row['id_user'] ?>">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Reset Password Guru</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                Reset password guru <strong><?= htmlspecialchars($row['nama_guru']) ?></strong> kembali menjadi <code>12345</code>?
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                <button type="submit" class="btn btn-warning" name="input_user_validate" value="1">Reset Password</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                        <?php } } ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
-<script>
-    // Example starter JavaScript for disabling form submissions if there are invalid fields
-    (() => {
-        'use strict'
 
-        // Fetch all the forms we want to apply custom Bootstrap validation styles to
-        const forms = document.querySelectorAll('.needs-validation')
+<!-- Modal Tambah Guru -->
+<div class="modal fade" id="ModalInputTeacher" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="controllers/teacher.php" method="POST">
+                <input type="hidden" name="action" value="input">
+                <div class="modal-header">
+                    <h5 class="modal-title">Tambah Guru Baru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info py-2 small">Password default akun baru adalah <code>12345</code>.</div>
+                    <div class="mb-3">
+                        <label class="form-label">ID Guru / NIP</label>
+                        <input type="text" class="form-control" name="id_guru" placeholder="Contoh: GURU005 atau NIP" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nama Lengkap & Gelar</label>
+                        <input type="text" class="form-control" name="nama_guru" placeholder="Contoh: Dra. Sri Wahyuni, M.Pd." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Username Login</label>
+                        <input type="text" class="form-control" name="username" placeholder="Contoh: sriwahyuni" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-        // Loop over them and prevent submission
-        Array.from(forms).forEach(form => {
-            form.addEventListener('submit', event => {
-                if (!form.checkValidity()) {
-                    event.preventDefault()
-                    event.stopPropagation()
-                }
-
-                form.classList.add('was-validated')
-            }, false)
-        })
-    })()
-</script>
+<!-- Modal Upload Excel Guru -->
+<div class="modal fade" id="ModalUploadTeacher" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="controllers/teacher.php" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="upload_excel">
+                <div class="modal-header">
+                    <h5 class="modal-title">Upload Data Guru (Excel / CSV)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3 p-3 bg-light rounded border d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="fw-semibold d-block text-dark small"><i class="fa-solid fa-file-excel text-success me-1"></i> Template Excel Guru</span>
+                            <small class="text-muted">Unduh format baku sebelum mengunggah data</small>
+                        </div>
+                        <a href="controllers/template.php?type=guru" class="btn btn-outline-success btn-sm">
+                            <i class="fa-solid fa-download me-1"></i> Download Template
+                        </a>
+                    </div>
+                    <div class="alert alert-info py-2 small">
+                        Format kolom file Excel: <code>id_guru</code>, <code>nama_guru</code>, <code>username</code>.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Pilih File (.xlsx atau .csv)</label>
+                        <input type="file" class="form-control" name="excel_file" accept=".xlsx, .csv" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success">Upload & Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

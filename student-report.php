@@ -1,190 +1,385 @@
 <?php
+session_start();
+if (empty($_SESSION['username'])) {
+    die('Akses ditolak. Silakan login terlebih dahulu.');
+}
+
 include_once "config/Database.php";
+require_once "models/Student.php";
+require_once "models/Bobot.php";
+require_once "models/Setting.php";
 
 $db = new Database();
 $conn = $db->connect();
 
-// Pastikan parameter 'id' ada di URL untuk menghindari error
-// Ini id user
-if (isset($_GET['id'])) {
-    $id = intval($_GET['id']);
-    // echo "ID yang diterima adalah: " . $id;
-    
-    $header = mysqli_fetch_assoc(mysqli_query($conn,"
-        SELECT * FROM tb_siswa 
-        INNER JOIN tb_user ON tb_siswa.id_user = tb_user.id_user
-        WHERE tb_siswa.id_user = '$id'
-    "));
+$studentModel = new Student($conn);
+$settingModel = new Setting($conn);
 
-    // Cek apakah data ditemukan
-    if (!$header) {
-        echo "<script>alert('Data dengan ID tersebut tidak ditemukan!');
-        window.location='students'</script>";
-    }
-
-    $detail = mysqli_query($conn,"
-        SELECT * FROM tb_nilai n
-        INNER JOIN tb_siswa s ON s.nis = n.nis
-        INNER JOIN tb_guru g ON g.id_guru = n.id_guru_matpel
-        WHERE n.nis = '{$header['nis']}'
-    ");
-} else {
-    echo "ID tidak ditemukan!";
+// Parameter NIS dari URL atau session siswa
+$nis = $_GET['nis'] ?? '';
+if (empty($nis) && ($_SESSION['role'] ?? '') === 'siswa') {
+    $nis = $_SESSION['id'] ?? '';
 }
-?>
 
+// Support ID User juga jika dipanggil via ?id=...
+if (empty($nis) && isset($_GET['id'])) {
+    $idUser = (int)$_GET['id'];
+    $qUser = mysqli_query($conn, "SELECT nis FROM tb_siswa WHERE id_user = $idUser");
+    $rUser = mysqli_fetch_assoc($qUser);
+    if ($rUser) {
+        $nis = $rUser['nis'];
+    }
+}
+
+if (empty($nis)) {
+    die('NIS Siswa tidak ditemukan.');
+}
+
+$reportData = $studentModel->getReportSts($nis);
+$student    = $reportData['student'];
+$grades     = $reportData['grades'];
+$setting    = $settingModel->get();
+
+if (!$student) {
+    die('Data siswa tidak ditemukan.');
+}
+
+// Ambil nama & NIP wali kelas
+$idKelas = (int)$student['id_kelas'];
+$qWali = mysqli_query($conn, "
+    SELECT g.nama_guru, g.id_guru
+    FROM tb_kelas k
+    LEFT JOIN tb_guru g ON k.id_guru_walikelas = g.id_guru
+    WHERE k.id_kelas = $idKelas
+");
+$wali = mysqli_fetch_assoc($qWali);
+$namaWali = $wali['nama_guru'] ?? '-';
+$nipWali  = $wali['id_guru'] ?? '-';
+
+// Format kelas sesuai template PDF (contoh "X 1" bukan "X-1")
+$kelasFormatted = str_replace('-', ' ', $student['nama_kelas']);
+
+// Fase Kurikulum Merdeka (Kelas 10 = E, Kelas 11 & 12 = F)
+$fase = ($student['tingkat'] === '10' || str_starts_with($student['nama_kelas'], 'X-')) ? 'E' : 'F';
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cetak Laporan Nilai Siswa - <?=$header['nama_guru']?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+    <title>Rapor STS - <?= htmlspecialchars($student['nama']) ?> (<?= htmlspecialchars($student['nis']) ?>)</title>
+    <link href="vendor/bootstrap-5.3.8/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* --- Gaya Tampilan di Layar Komputer --- */
+        * {
+            box-sizing: border-box;
+        }
         body {
-            background-color: #f8f9fa;
-            padding: 20px;
+            background-color: #f0f2f5;
+            color: #000;
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            padding: 0;
         }
-        .print-container {
-            background: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        .report-page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 16mm 20mm 14mm 20mm;
+            margin: 20px auto;
+            background: #ffffff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
-        .info-text {
-            font-size: 1.1rem;
+        .content-area {
+            flex: 1;
+        }
+        .meta-table {
+            width: 100%;
+            font-size: 13px;
+            line-height: 1.45;
+            border-collapse: collapse;
+        }
+        .meta-table td {
+            padding: 2px 0;
+            vertical-align: top;
+        }
+        .meta-divider {
+            border: none;
+            border-top: 1.5px solid #000;
+            margin: 10px 0 14px 0;
+            opacity: 1;
+        }
+        .report-title {
+            text-align: center;
             font-weight: bold;
-            color: #333;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            margin-bottom: 14px;
         }
-
-        /* --- 🖨️ ATURAN KHUSUS UNTUK CETAK (PRINT) 🖨️ --- */
+        .table-raport {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+            margin-bottom: 14px;
+        }
+        .table-raport th,
+        .table-raport td {
+            border: 1px solid #000;
+            padding: 5px 6px;
+        }
+        .table-raport th {
+            text-align: center;
+            font-weight: bold;
+            vertical-align: middle;
+            background-color: #ffffff;
+        }
+        .table-raport td.text-center {
+            text-align: center;
+        }
+        .table-raport td.mapel-name {
+            text-align: left;
+            padding-left: 8px;
+        }
+        .table-ketidakhadiran {
+            width: 42%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 10px;
+            margin-bottom: 16px;
+        }
+        .table-ketidakhadiran th,
+        .table-ketidakhadiran td {
+            border: 1px solid #000;
+            padding: 4px 8px;
+        }
+        .table-ketidakhadiran th {
+            text-align: center;
+            font-weight: bold;
+            background-color: #fafafa;
+        }
+        .signature-table {
+            width: 100%;
+            font-size: 12px;
+            margin-top: 8px;
+            border-collapse: collapse;
+        }
+        .signature-table td {
+            text-align: center;
+            vertical-align: top;
+            padding: 0 4px;
+        }
+        .signature-table td.col-ortu {
+            width: 28%;
+        }
+        .signature-table td.col-kepsek {
+            width: 40%;
+            white-space: nowrap;
+        }
+        .signature-table td.col-wali {
+            width: 32%;
+            white-space: nowrap;
+        }
+        .signature-space {
+            height: 65px;
+        }
+        .running-footer {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 10px;
+            margin-top: 14px;
+            border-top: 1px solid #eee;
+        }
         @media print {
             body {
-                background-color: #fff;
-                padding: 0;
+                background: #ffffff;
             }
-            .print-container {
+            .report-page {
                 box-shadow: none;
-                padding: 0;
-                border-radius: 0;
+                margin: 0;
+                padding: 12mm 16mm 10mm 16mm;
+                width: 100%;
+                min-height: auto;
+                height: 100%;
             }
-            /* Sembunyikan tombol cetak dan kolom aksi tabel saat dicetak */
             .no-print {
                 display: none !important;
             }
-            /* Pengaturan halaman cetak agar pas dengan kertas */
-            @page {
-                size: A4;
-                margin: 20mm 15mm 20mm 15mm;
+            .running-footer {
+                border-top: none;
             }
-            /* Memastikan warna teks header tabel tercetak dengan baik */
-            .table thead th {
-                background-color: #f2f2f2 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
+            @page {
+                size: A4 portrait;
+                margin: 10mm 12mm;
             }
         }
     </style>
 </head>
 <body>
 
-<div class="container print-container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-         <button class="btn btn-secondary" onclick="window.close();">
-            ✕ Tutup Halaman
-        </button>
-        <button onclick="window.print();" class="btn btn-primary">
-            🖨️ Cetak Sekarang
-        </button>
-    </div>
+<div class="container text-center my-3 no-print">
+    <button onclick="window.print();" class="btn btn-primary px-4 me-2">
+        <i class="fa fa-print me-1"></i> Cetak Dokumen Rapor
+    </button>
+    <button onclick="window.close();" class="btn btn-secondary px-3">
+        Tutup
+    </button>
+</div>
 
-    <div class="text-center mb-4 border-bottom pb-3">
-        <h2>LAPORAN NILAI HASIL BELAJAR SISWA</h2>
-        <p class="text-muted mb-0">Sistem Informasi Akademik SMAN 67 Tangerang</p>
-    </div>
+<div class="report-page">
+    <div class="content-area">
+        <!-- Metadata Siswa & Sekolah -->
+        <table class="meta-table">
+            <tr>
+                <td style="width: 13%;">Nama Murid</td>
+                <td style="width: 2%;">:</td>
+                <td style="width: 47%; font-weight: bold;"><?= htmlspecialchars($student['nama']) ?></td>
+                <td style="width: 15%;">Kelas</td>
+                <td style="width: 2%;">:</td>
+                <td style="width: 21%;"><?= htmlspecialchars($kelasFormatted) ?></td>
+            </tr>
+            <tr>
+                <td>NIS/NISN</td>
+                <td>:</td>
+                <td><?= htmlspecialchars($student['nis']) ?> / <?= htmlspecialchars($student['nisn'] ?? '-') ?></td>
+                <td>Fase</td>
+                <td>:</td>
+                <td><?= htmlspecialchars($fase) ?></td>
+            </tr>
+            <tr>
+                <td>Sekolah</td>
+                <td>:</td>
+                <td><?= htmlspecialchars($setting['nama_sekolah']) ?></td>
+                <td>Semester</td>
+                <td>:</td>
+                <td><?= htmlspecialchars($setting['semester']) ?></td>
+            </tr>
+            <tr>
+                <td>Alamat</td>
+                <td>:</td>
+                <td><?= htmlspecialchars($setting['alamat_sekolah']) ?></td>
+                <td>Tahun Ajaran</td>
+                <td>:</td>
+                <td><?= htmlspecialchars($setting['tahun_ajaran']) ?></td>
+            </tr>
+        </table>
 
-    <div class="row mb-4 bg-light p-3 rounded mx-1">
-        <div class="col-4">
-            <small class="text-muted d-block">NIS</small>
-            <span class="info-text"><?=$header['nis']?></span>
-        </div>
-        <div class="col-4">
-            <small class="text-muted d-block">NAMA</small>
-            <span class="info-text"><?=$header['nama']?></span>
-        </div>
-        <div class="col-4">
-            <small class="text-muted d-block">KELAS</small>
-            <span class="info-text"><?=$header['kelas']?></span>
-        </div>
-    </div>
+        <div class="meta-divider"></div>
 
-    <h5 class="mb-3">Rangkuman Nilai</h5>
-    <?php
-    if (empty($detail)) {
-        echo "<div class='alert alert-warning'>Data detail nilai tidak ditemukan.</div>";
-    } else {
-    ?>
-        <table class="table table-bordered align-middle">
-            <thead class="table-light">
+        <!-- Judul Laporan -->
+        <div class="report-title">LAPORAN HASIL BELAJAR</div>
+
+        <!-- Tabel Nilai -->
+        <table class="table-raport">
+            <thead>
                 <tr>
-                    <th scope="col" style="width: 5%">No</th>
-                    <th scope="col" style="width: 25%">Mata Pelajaran</th>
-                    <th scope="col" style="width: 10%">Nama Guru</th>
-                    <th scope="col">Tugas</th>
-                    <th scope="col">UTS</th>
-                    <th scope="col">UAS</th>
-                    <th scope="col">Nilai Akhir</th>
-                    <th scope="col">Status</th>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 37%;">Mata Pelajaran</th>
+                    <th style="width: 11%;">Nilai<br>Sumatif 1</th>
+                    <th style="width: 11%;">Nilai<br>Sumatif 2</th>
+                    <th style="width: 11%;">Nilai<br>Sumatif 3</th>
+                    <th style="width: 11%;">Nilai<br>ATS</th>
+                    <th style="width: 14%;">Nilai akhir</th>
                 </tr>
             </thead>
             <tbody>
                 <?php
-                $no = 1;
-                foreach ($detail as $row) {
-                    // Beri warna teks tipis pembeda lulus / tidak lulus di cetakan
-                    $status_class = ($row['status_kelulusan'] == 'Lulus') ? 'text-success fw-bold' : 'text-danger fw-bold';
+                if (empty($grades)) {
+                    echo '<tr><td colspan="7" class="text-center py-4 text-muted">Belum ada data mata pelajaran untuk kelas ini.</td></tr>';
+                } else {
+                    $no = 1;
+                    foreach ($grades as $g) {
+                        $s1 = ($g['sumatif_1'] !== null && $g['sumatif_1'] !== '') ? (float)$g['sumatif_1'] : '';
+                        $s2 = ($g['sumatif_2'] !== null && $g['sumatif_2'] !== '') ? (float)$g['sumatif_2'] : '';
+                        $s3 = ($g['sumatif_3'] !== null && $g['sumatif_3'] !== '') ? (float)$g['sumatif_3'] : '';
+                        $ats = ($g['nilai_sts'] !== null && $g['nilai_sts'] !== '') ? (float)$g['nilai_sts'] : '';
+                        $na = ($g['nilai_akhir'] !== null && $g['nilai_akhir'] !== '') ? (float)$g['nilai_akhir'] : '';
                 ?>
                     <tr>
-                        <td class="text-center"><?php echo $no++ ?></td>
-                        <td><?php echo $row['mata_pelajaran'] ?></td>
-                        <td class="text-center"><?php echo $row['nama_guru'] ?></td>
-                        <td class="text-center"><?php echo $row['tugas'] ?></td>
-                        <td class="text-center"><?php echo $row['uts'] ?></td>
-                        <td class="text-center"><?php echo $row['uas'] ?></td>
-                        <td class="text-center fw-bold"><?php echo $row['nilai_akhir'] ?></td>
-                        <td class="<?php echo $status_class; ?>"><?php echo $row['status_kelulusan'] ?></td>
+                        <td class="text-center"><?= $no++ ?></td>
+                        <td class="mapel-name"><?= htmlspecialchars($g['nama_mapel']) ?></td>
+                        <td class="text-center"><?= $s1 ?></td>
+                        <td class="text-center"><?= $s2 ?></td>
+                        <td class="text-center"><?= $s3 ?></td>
+                        <td class="text-center"><?= $ats ?></td>
+                        <td class="text-center"><?= $na ?></td>
                     </tr>
                 <?php
+                    }
                 }
                 ?>
             </tbody>
         </table>
-    <?php
-    }
-    ?>
 
-    <div class="row mt-5 pt-4">
-        <div class="col-8"></div>
-        <div class="col-4 text-center">
-            <p>Tangerang, <?= date('d F Y') ?></p>
-            <p class="mb-5">Siswa,</p>
-            <br><br>
-            <p class="fw-bold text-decoration-underline"><?=$header['nama']?></p>
-            <p class="text-muted" style="margin-top: -15px;">NIP. <?=$header['nis']?></p>
-        </div>
+        <!-- Keterangan Ketidakhadiran -->
+        <?php
+        $presensi = $reportData['presensi'] ?? ['sakit' => 0, 'izin' => 0, 'alpa' => 0];
+        $sakitTxt = ((int)($presensi['sakit'] ?? 0) > 0) ? (int)$presensi['sakit'] . ' Hari' : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hari';
+        $izinTxt  = ((int)($presensi['izin'] ?? 0) > 0) ? (int)$presensi['izin'] . ' Hari' : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hari';
+        $alpaTxt  = ((int)($presensi['alpa'] ?? 0) > 0) ? (int)$presensi['alpa'] . ' Hari' : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hari';
+        ?>
+        <table class="table-ketidakhadiran">
+            <thead>
+                <tr>
+                    <th colspan="3">Ketidakhadiran</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="width: 52%;">Sakit</td>
+                    <td style="width: 6%; text-align: center;">:</td>
+                    <td style="width: 42%;"><?= $sakitTxt ?></td>
+                </tr>
+                <tr>
+                    <td>Izin</td>
+                    <td style="text-align: center;">:</td>
+                    <td><?= $izinTxt ?></td>
+                </tr>
+                <tr>
+                    <td>Tanpa Keterangan</td>
+                    <td style="text-align: center;">:</td>
+                    <td><?= $alpaTxt ?></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Tanda Tangan -->
+        <table class="signature-table">
+            <tr>
+                <td class="col-ortu">Orang Tua Murid</td>
+                <td class="col-kepsek">Kepala Sekolah</td>
+                <td class="col-wali"><?= htmlspecialchars($setting['tempat_rapor']) ?>, <?= htmlspecialchars($setting['tanggal_rapor']) ?><br>Wali Kelas</td>
+            </tr>
+            <tr>
+                <td class="signature-space"></td>
+                <td class="signature-space"></td>
+                <td class="signature-space"></td>
+            </tr>
+            <tr>
+                <td class="col-ortu">................................................</td>
+                <td class="col-kepsek">
+                    <span style="white-space: nowrap; display: inline-block;"><u><strong><?= htmlspecialchars($setting['nama_kepala_sekolah']) ?></strong></u></span><br>
+                    NIP <?= htmlspecialchars($setting['nip_kepala_sekolah']) ?>
+                </td>
+                <td class="col-wali">
+                    <span style="white-space: nowrap; display: inline-block;"><u><strong><?= htmlspecialchars($namaWali) ?></strong></u></span><br>
+                    NIP <?= htmlspecialchars($nipWali) ?>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Running Footer -->
+    <div class="running-footer">
+        <div><?= htmlspecialchars($kelasFormatted) ?> | <?= htmlspecialchars($student['nama']) ?> | <?= htmlspecialchars($student['nis']) ?></div>
+        <div>Halaman : 1</div>
     </div>
 </div>
-
-<script>
-    window.addEventListener('DOMContentLoaded', (event) => {
-        // Beri jeda sedikit agar layout browser selesai memproses CSS render
-        setTimeout(function() {
-            window.print();
-        }, 500);
-    });
-</script>
 
 </body>
 </html>

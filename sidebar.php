@@ -1,46 +1,165 @@
-            <div class="col-lg-3">
-                <nav class="navbar navbar-expand-lg bg-body-tertiary rounded border mt-2">
-                <div class="container-fluid">
-                    <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                    </button>
-                    <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel" style="width: 300px">
-                    <div class="offcanvas-header">
-                        <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Navigation</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-                    </div>
-                    <div class="offcanvas-body">
-                        <ul class="navbar-nav nav-pills flex-column justify-content-end flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link ps-2 <?php echo ((isset($_GET['x']) && $_GET['x']=='home') || !isset($_GET['x'])) ? 'active link-light' : 'link-dark'; ?>" aria-current="page" href="home"><i class="fa-solid fa-school"></i></i> Dashboard</a>
-                        </li>
-                        <?php if ($_SESSION["role"] == "admin") { ?>
-                        <li class="nav-item">
-                            <a class="nav-link ps-2 <?php echo (isset($_GET['x']) && $_GET['x']=='admins') ? 'active link-light' : 'link-dark'; ?> " href="admins"><i class="fa-solid fa-user-circle"></i> Admin</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link ps-2 <?php echo (isset($_GET['x']) && $_GET['x']=='teachers') ? 'active link-light' : 'link-dark'; ?> " href="teachers"><i class="fa-solid fa-chalkboard-teacher"></i> Guru</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link ps-2 <?php echo (isset($_GET['x']) && $_GET['x']=='students') ? 'active link-light' : 'link-dark'; ?> " href="students"><i class="fa-solid fa-users"></i> Siswa</a>
-                        </li>
-                        <?php }
-                        if ($_SESSION["role"] == "guru") { ?>
-                        <li class="nav-item">
-                            <a class="nav-link ps-2 <?php echo (isset($_GET['x']) && $_GET['x']=='grade-recap') ? 'active link-light' : 'link-dark'; ?> " href="grade-recap"><i class="fa-solid fa-chart-bar"></i> Rekap Nilai</a>
-                        </li>
-                        <?php } 
-                        if ($_SESSION["role"] == "siswa") { ?>
-                        <li class="nav-item">
-                            <a class="nav-link ps-2 <?php echo (isset($_GET['x']) && $_GET['x']=='grade-summary') ? 'active link-light' : 'link-dark'; ?> " href="grade-summary"><i class="fa-solid fa-chart-line"></i> Rangkuman Nilai</a>
-                        </li>
-                        <?php } ?>
-                        <!-- <li class="nav-item">
-                            <a class="nav-link ps-2 <?php echo (isset($_GET['x']) && $_GET['x']=='user') ? 'active link-light' : 'link-dark'; ?> " href="user"><i class="bi bi-person-fill"></i> User</a>
-                        </li> -->
-                        </ul>
-                    </div>
-                    </div>
-                </div>
-                </nav>
-            </div>
+<?php
+$currentX = $_GET['x'] ?? 'home';
+function navActive(string $target, string $current): string {
+    return ($target === $current) ? 'active' : '';
+}
+?>
+<div class="col-lg-3 mt-2">
+    <div class="sidebar-card">
+        <div class="d-lg-none mb-3">
+            <button class="btn btn-outline-primary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarCollapse" aria-expanded="false">
+                <i class="fa-solid fa-bars me-2"></i> Menu Navigasi
+            </button>
+        </div>
+        <div class="collapse d-lg-block" id="sidebarCollapse">
+            <ul class="nav nav-pills flex-column">
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('home', $currentX) ?>" href="home">
+                        <i class="fa-solid fa-gauge text-primary"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+
+                <?php if (($_SESSION["role"] ?? '') === "admin") { ?>
+                <li class="sidebar-section-title">Data Master</li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('classes', $currentX) ?>" href="classes">
+                        <i class="fa-solid fa-chalkboard text-info"></i>
+                        <span>Data Kelas</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('subjects', $currentX) ?>" href="subjects">
+                        <i class="fa-solid fa-book text-warning"></i>
+                        <span>Referensi Mapel</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('subject-mapping', $currentX) ?>" href="subject-mapping">
+                        <i class="fa-solid fa-list-ol text-success"></i>
+                        <span>Mapping Mapel</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('teachers', $currentX) ?>" href="teachers">
+                        <i class="fa-solid fa-chalkboard-user text-primary"></i>
+                        <span>Data Guru</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('assignments', $currentX) ?>" href="assignments">
+                        <i class="fa-solid fa-link text-danger"></i>
+                        <span>Penugasan Mengajar</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('students', $currentX) ?>" href="students">
+                        <i class="fa-solid fa-user-graduate text-secondary"></i>
+                        <span>Data Siswa</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-section-title">Monitoring & Cetak</li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('grade-monitor', $currentX) ?>" href="grade-monitor">
+                        <i class="fa-solid fa-chart-pie text-info"></i>
+                        <span>Monitor Penilaian</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('attendance', $currentX) ?>" href="attendance">
+                        <i class="fa-solid fa-clipboard-user text-warning"></i>
+                        <span>Ketidakhadiran Siswa</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('bulk-print', $currentX) ?>" href="bulk-print">
+                        <i class="fa-solid fa-print text-danger"></i>
+                        <span>Cetak Rapor STS</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-section-title">Konfigurasi</li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('school-profile', $currentX) ?>" href="school-profile">
+                        <i class="fa-solid fa-school-flag text-primary"></i>
+                        <span>Data Sekolah & Logo</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('settings', $currentX) ?>" href="settings">
+                        <i class="fa-solid fa-file-signature text-success"></i>
+                        <span>Format Cetak Rapor</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('weights', $currentX) ?>" href="weights">
+                        <i class="fa-solid fa-sliders text-info"></i>
+                        <span>Pengaturan Bobot STS</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('admins', $currentX) ?>" href="admins">
+                        <i class="fa-solid fa-user-shield text-danger"></i>
+                        <span>Kelola Admin</span>
+                    </a>
+                </li>
+                <?php } ?>
+
+                <?php if (($_SESSION["role"] ?? '') === "guru") { ?>
+                <li class="sidebar-section-title">Akademik Guru</li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('grade-recap', $currentX) ?>" href="grade-recap">
+                        <i class="fa-solid fa-pen-to-square text-primary"></i>
+                        <span>Input Nilai STS</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('attendance', $currentX) ?>" href="attendance">
+                        <i class="fa-solid fa-clipboard-user text-warning"></i>
+                        <span>Ketidakhadiran Siswa (BK)</span>
+                    </a>
+                </li>
+                <?php } ?>
+
+                <?php if (($_SESSION["role"] ?? '') === "walikelas") { ?>
+                <li class="sidebar-section-title">Wali Kelas</li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('homeroom', $currentX) ?>" href="homeroom">
+                        <i class="fa-solid fa-users-line text-success"></i>
+                        <span>Perwalian & Rapor</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('attendance', $currentX) ?>" href="attendance">
+                        <i class="fa-solid fa-clipboard-user text-warning"></i>
+                        <span>Input Ketidakhadiran</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('grade-monitor', $currentX) ?>" href="grade-monitor">
+                        <i class="fa-solid fa-chart-pie text-info"></i>
+                        <span>Monitor Nilai Kelas</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('bulk-print', $currentX) ?>" href="bulk-print">
+                        <i class="fa-solid fa-print text-danger"></i>
+                        <span>Cetak Rapor Kelas</span>
+                    </a>
+                </li>
+                <?php } ?>
+
+                <?php if (($_SESSION["role"] ?? '') === "siswa") { ?>
+                <li class="sidebar-section-title">Hasil Belajar</li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('grade-summary', $currentX) ?>" href="grade-summary">
+                        <i class="fa-solid fa-file-invoice text-primary"></i>
+                        <span>Rapor STS Saya</span>
+                    </a>
+                </li>
+                <?php } ?>
+            </ul>
+        </div>
+    </div>
+</div>

@@ -84,7 +84,7 @@ if (isset($_GET['id'])) {
             <h5 class="mt-4">List Nilai Siswa</h5>
             <?php
             if (empty($detail)) {
-                echo "Data detail pesanan tidak ada.";
+                echo "<div class='alert alert-warning mt-3'>Data detail nilai siswa belum ada.</div>";
             } else {
             ?>
                 <div class="table-responsive">

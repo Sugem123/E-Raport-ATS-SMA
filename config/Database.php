@@ -25,10 +25,7 @@ class Database
         // Mengecek apakah koneksi berhasil atau gagal
         if (!$this->conn) {
             // Menghentikan program dan menampilkan pesan jika koneksi gagal
-            die("Gagal koneksi database");
-        } else {
-            // Menampilkan pesan pada console browser jika koneksi berhasil
-            echo "<script> console.log('Database berhasil tersambung.'); </script>";
+            die("Gagal koneksi database: " . mysqli_connect_error());
         }
 
         // Mengembalikan objek koneksi agar dapat digunakan oleh class lain

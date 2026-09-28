@@ -1,1 +1,11 @@
-dummy
+# Environment & Context Files
+.opencode*
+.antigravity*
+*.tmp*
+.DS_Store
+Thumbs.db
+
+# User Uploads (keep directory and active school logo)
+uploads/*
+!uploads/.gitkeep
+!uploads/logo_sekolah_1790601515.png

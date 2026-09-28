@@ -30,7 +30,7 @@ $admins = $admin->getAll();
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <form class="needs-validation" novalidate action="controllers\admin.php" method="POST">
+                            <form class="needs-validation" novalidate action="controllers/admin.php" method="POST">
                                 <input type="hidden" name="action" value="input">
                                 <div class="row">
                                     <div class="col-lg-12">
@@ -127,7 +127,7 @@ $admins = $admin->getAll();
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <form class="needs-validation" novalidate action="controllers\admin.php" method="POST">
+                            <form class="needs-validation" novalidate action="controllers/admin.php" method="POST">
                                 <input type="hidden" name="action" value="update">
                                 <input type="hidden" name="id" value="<?= $row['id_user']; ?>">
                                 <div class="row">
@@ -160,7 +160,7 @@ $admins = $admin->getAll();
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <form class="needs-validation" novalidate action="controllers\admin.php" method="POST">
+                            <form class="needs-validation" novalidate action="controllers/admin.php" method="POST">
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<?= $row['id_user']; ?>">
                                 <div class="col-lg-12">

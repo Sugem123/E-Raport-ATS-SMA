@@ -1,265 +1,186 @@
 <?php
 
-// Class Grade digunakan untuk mengelola data nilai siswa
-// meliputi tambah, ubah, dan hapus nilai.
+require_once __DIR__ . '/../config/ExcelHelper.php';
+
 class Grade
 {
-    // Menyimpan koneksi database
     private mysqli $conn;
 
-    // Constructor menerima objek koneksi database
     public function __construct(mysqli $conn)
     {
         $this->conn = $conn;
     }
 
-    // Method private untuk memvalidasi nilai
-    // agar berada pada rentang 0 - 100
-    private function validateScore(
-        float $tugas,
-        float $uts,
-        float $uas
-    ): bool {
-        return (
-            $tugas >= 0 && $tugas <= 100 &&
-            $uts >= 0 && $uts <= 100 &&
-            $uas >= 0 && $uas <= 100
-        );
-    }
-
-    // Method private untuk menghitung nilai akhir
-    // dan menentukan status kelulusan
-    private function calculateFinal(
-        float $tugas,
-        float $uts,
-        float $uas
-    ): array {
-
-        // Bobot:
-        // Tugas = 30%
-        // UTS = 30%
-        // UAS = 40%
-        $nilaiAkhir =
-            ($tugas * 0.3) +
-            ($uts * 0.3) +
-            ($uas * 0.4);
-
-        return [
-            'nilai_akhir' => $nilaiAkhir,
-
-            // Lulus jika nilai akhir >= 70
-            'status' => $nilaiAkhir >= 70
-                ? 'Lulus'
-                : 'Tidak Lulus'
-        ];
-    }
-
-    // Method untuk menambahkan nilai siswa
-    public function create(
+    public function saveGrade(
         string $nis,
-        string $guruId,
-        float $tugas,
-        float $uts,
-        float $uas
+        int $idPengampu,
+        float $s1,
+        float $s2,
+        float $s3,
+        float $sts
     ): array {
-
-        // Validasi nilai
-        if (
-            !$this->validateScore(
-                $tugas,
-                $uts,
-                $uas
-            )
-        ) {
-            return [
-                'success' => false,
-                'message' => 'Nilai harus 0-100'
-            ];
+        foreach (['Sumatif 1' => $s1, 'Sumatif 2' => $s2, 'Sumatif 3' => $s3, 'Nilai STS' => $sts] as $label => $val) {
+            if ($val < 0 || $val > 100) {
+                return ['success' => false, 'message' => "$label harus berada di rentang 0-100."];
+            }
         }
 
-        // Memastikan NIS siswa ada
-        $siswa = mysqli_prepare(
-            $this->conn,
-            "SELECT nis
-             FROM tb_siswa
-             WHERE nis=?"
-        );
+        $rataSumatif = round(($s1 + $s2 + $s3) / 3, 2);
 
-        mysqli_stmt_bind_param(
-            $siswa,
-            "s",
-            $nis
-        );
+        $qBobot = mysqli_query($this->conn, "SELECT bobot_sumatif, bobot_sts, kkm FROM tb_pengaturan_bobot WHERE id_pengaturan = 1");
+        $bobot = mysqli_fetch_assoc($qBobot);
+        $bSumatif = (float)($bobot['bobot_sumatif'] ?? 60);
+        $bSts = (float)($bobot['bobot_sts'] ?? 40);
+        $kkm = (float)($bobot['kkm'] ?? 75);
 
-        mysqli_stmt_execute($siswa);
-        mysqli_stmt_store_result($siswa);
-
-        // Jika siswa tidak ditemukan
-        if (
-            mysqli_stmt_num_rows($siswa) == 0
-        ) {
-            return [
-                'success' => false,
-                'message' => 'NIS tidak ditemukan'
-            ];
+        $totalBobot = $bSumatif + $bSts;
+        if ($totalBobot <= 0) {
+            $totalBobot = 100;
         }
 
-        // Mengecek apakah siswa sudah memiliki nilai
-        // dari guru/mata pelajaran yang sama
-        $check = mysqli_prepare(
-            $this->conn,
-            "SELECT id_nilai
-             FROM tb_nilai
-             WHERE nis=?
-             AND id_guru_matpel=?"
-        );
+        $nilaiAkhir = round((($rataSumatif * $bSumatif) + ($sts * $bSts)) / $totalBobot, 2);
+        $status = ($nilaiAkhir >= $kkm) ? 'Tercapai' : 'Belum Tercapai';
 
-        mysqli_stmt_bind_param(
-            $check,
-            "ss",
-            $nis,
-            $guruId
-        );
-
-        mysqli_stmt_execute($check);
-        mysqli_stmt_store_result($check);
-
-        // Jika nilai sudah ada
-        if (
-            mysqli_stmt_num_rows($check) > 0
-        ) {
-            return [
-                'success' => false,
-                'message' => 'Siswa sudah dinilai'
-            ];
-        }
-
-        // Menghitung nilai akhir dan status kelulusan
-        $result = $this->calculateFinal(
-            $tugas,
-            $uts,
-            $uas
-        );
-
-        // Menyimpan data nilai ke database
         $stmt = mysqli_prepare(
             $this->conn,
-            "INSERT INTO tb_nilai
-            (
-                nis,
-                id_guru_matpel,
-                tugas,
-                uts,
-                uas,
-                nilai_akhir,
-                status_kelulusan
-            )
-            VALUES(?,?,?,?,?,?,?)"
+            "INSERT INTO tb_nilai_sts (nis, id_pengampu, sumatif_1, sumatif_2, sumatif_3, rata_sumatif, nilai_sts, nilai_akhir, status_kelulusan)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                sumatif_1 = VALUES(sumatif_1),
+                sumatif_2 = VALUES(sumatif_2),
+                sumatif_3 = VALUES(sumatif_3),
+                rata_sumatif = VALUES(rata_sumatif),
+                nilai_sts = VALUES(nilai_sts),
+                nilai_akhir = VALUES(nilai_akhir),
+                status_kelulusan = VALUES(status_kelulusan)"
         );
-
         mysqli_stmt_bind_param(
             $stmt,
-            "ssdddds",
+            "sidddddds",
             $nis,
-            $guruId,
-            $tugas,
-            $uts,
-            $uas,
-            $result['nilai_akhir'],
-            $result['status']
+            $idPengampu,
+            $s1,
+            $s2,
+            $s3,
+            $rataSumatif,
+            $sts,
+            $nilaiAkhir,
+            $status
         );
 
-        mysqli_stmt_execute($stmt);
+        if (mysqli_stmt_execute($stmt)) {
+            return [
+                'success' => true,
+                'message' => 'Nilai STS berhasil disimpan.',
+                'rata_sumatif' => $rataSumatif,
+                'nilai_akhir' => $nilaiAkhir,
+                'status' => $status
+            ];
+        }
+
+        return ['success' => false, 'message' => 'Gagal menyimpan nilai STS.'];
+    }
+
+    public function importExcel(string $filePath, string $originalFileName, int $idPengampu): array
+    {
+        $rows = ExcelHelper::parse($filePath, $originalFileName);
+        if (empty($rows)) {
+            return ['success' => false, 'message' => 'File Excel kosong atau format tidak sesuai.'];
+        }
+
+        $updated = 0;
+        $failed = 0;
+
+        foreach ($rows as $row) {
+            $nis = $row['nis'] ?? '';
+            if (empty($nis)) {
+                continue;
+            }
+
+            $s1  = isset($row['sumatif_1']) && $row['sumatif_1'] !== '' ? (float)$row['sumatif_1'] : 0;
+            $s2  = isset($row['sumatif_2']) && $row['sumatif_2'] !== '' ? (float)$row['sumatif_2'] : 0;
+            $s3  = isset($row['sumatif_3']) && $row['sumatif_3'] !== '' ? (float)$row['sumatif_3'] : 0;
+            $sts = isset($row['nilai_sts']) && $row['nilai_sts'] !== '' ? (float)$row['nilai_sts'] : 0;
+
+            $res = $this->saveGrade($nis, $idPengampu, $s1, $s2, $s3, $sts);
+            if ($res['success']) {
+                $updated++;
+            } else {
+                $failed++;
+            }
+        }
 
         return [
             'success' => true,
-            'message' => 'Nilai berhasil ditambah'
+            'message' => "Upload nilai berhasil diproses. $updated data nilai siswa berhasil disimpan/diperbarui" . ($failed > 0 ? ", $failed gagal." : ".")
         ];
     }
 
-    // Method untuk memperbarui nilai siswa
-    public function update(
-        int $idNilai,
-        float $tugas,
-        float $uts,
-        float $uas
-    ): array {
-
-        // Validasi nilai
-        if (
-            !$this->validateScore(
-                $tugas,
-                $uts,
-                $uas
-            )
-        ) {
-            return [
-                'success' => false,
-                'message' => 'Nilai harus 0-100'
-            ];
+    public function importExcelPresensi(string $filePath, string $originalFileName): array
+    {
+        $rows = ExcelHelper::parse($filePath, $originalFileName);
+        if (empty($rows)) {
+            return ['success' => false, 'message' => 'File Excel kosong atau format tidak sesuai.'];
         }
 
-        // Menghitung ulang nilai akhir
-        $result = $this->calculateFinal(
-            $tugas,
-            $uts,
-            $uas
-        );
+        $updated = 0;
+        $failed = 0;
 
-        // Mengupdate data nilai
-        $stmt = mysqli_prepare(
-            $this->conn,
-            "UPDATE tb_nilai
-             SET tugas=?,
-                 uts=?,
-                 uas=?,
-                 nilai_akhir=?,
-                 status_kelulusan=?
-             WHERE id_nilai=?"
-        );
+        foreach ($rows as $row) {
+            $nis = trim((string)($row['nis'] ?? ''));
+            if (empty($nis)) {
+                continue;
+            }
 
-        mysqli_stmt_bind_param(
-            $stmt,
-            "ddddsi",
-            $tugas,
-            $uts,
-            $uas,
-            $result['nilai_akhir'],
-            $result['status'],
-            $idNilai
-        );
+            $sakit = isset($row['sakit']) && $row['sakit'] !== '' ? max(0, (int)$row['sakit']) : 0;
+            $izin  = isset($row['izin']) && $row['izin'] !== '' ? max(0, (int)$row['izin']) : 0;
+            $alpa  = isset($row['alpa']) && $row['alpa'] !== '' ? max(0, (int)$row['alpa']) : 0;
 
-        mysqli_stmt_execute($stmt);
+            $res = $this->savePresensi($nis, $sakit, $izin, $alpa);
+            if ($res['success']) {
+                $updated++;
+            } else {
+                $failed++;
+            }
+        }
 
         return [
             'success' => true,
-            'message' => 'Nilai berhasil diperbarui'
+            'message' => "Upload presensi berhasil diproses. Data ketidakhadiran $updated siswa berhasil disimpan" . ($failed > 0 ? ", $failed gagal." : ".")
         ];
     }
 
-    // Method untuk menghapus data nilai
-    public function delete(
-        int $idNilai
-    ): array {
+    public function savePresensi(string $nis, int $sakit, int $izin, int $alpa): array
+    {
+        $sakit = max(0, $sakit);
+        $izin  = max(0, $izin);
+        $alpa  = max(0, $alpa);
 
         $stmt = mysqli_prepare(
             $this->conn,
-            "DELETE FROM tb_nilai
-             WHERE id_nilai=?"
+            "INSERT INTO tb_presensi_sts (nis, sakit, izin, alpa)
+             VALUES (?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                sakit = VALUES(sakit),
+                izin = VALUES(izin),
+                alpa = VALUES(alpa)"
         );
+        mysqli_stmt_bind_param($stmt, "siii", $nis, $sakit, $izin, $alpa);
 
-        mysqli_stmt_bind_param(
-            $stmt,
-            "i",
-            $idNilai
-        );
+        if (mysqli_stmt_execute($stmt)) {
+            return ['success' => true, 'message' => 'Data ketidakhadiran berhasil disimpan.'];
+        }
+        return ['success' => false, 'message' => 'Gagal menyimpan ketidakhadiran.'];
+    }
 
-        mysqli_stmt_execute($stmt);
+    public function deleteGrade(int $idNilai): array
+    {
+        $stmt = mysqli_prepare($this->conn, "DELETE FROM tb_nilai_sts WHERE id_nilai = ?");
+        mysqli_stmt_bind_param($stmt, "i", $idNilai);
 
-        return [
-            'success' => true,
-            'message' => 'Nilai berhasil dihapus'
-        ];
+        if (mysqli_stmt_execute($stmt)) {
+            return ['success' => true, 'message' => 'Nilai berhasil dihapus.'];
+        }
+        return ['success' => false, 'message' => 'Gagal menghapus nilai.'];
     }
 }
-?>

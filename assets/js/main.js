@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
 
     const form = document.querySelector("#ModalInputGrade form");
+    if (!form) return;
 
     form.addEventListener("submit", function (e) {
 

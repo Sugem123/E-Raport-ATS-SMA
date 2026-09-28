@@ -1,4 +1,8 @@
 RewriteEngine On
 
+# Jangan rewrite jika file atau folder fisik memang ada
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
 # Izinkan huruf, angka, dan tanda hubung (-)
 RewriteRule ^([a-zA-Z0-9\-]+)$ index.php?x=$1 [QSA,L]

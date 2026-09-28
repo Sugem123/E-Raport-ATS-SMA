@@ -1,95 +1,67 @@
 <?php
+session_start();
+if (empty($_SESSION['username']) || $_SESSION['role'] !== 'admin') {
+    die('Akses tidak valid.');
+}
 
-// Memanggil konfigurasi database
-require_once "../config/Database.php";
+require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../models/Student.php';
 
-// Memanggil model Student
-require_once "../models/Student.php";
-
-// Membuat objek Database
 $db = new Database();
-
-// Membuka koneksi ke database
 $conn = $db->connect();
-
-// Membuat instance model Student
 $student = new Student($conn);
 
-/* =========================================================
-   VALIDASI AKSES
-   Mencegah akses langsung tanpa submit form
-   ========================================================= */
-if (!isset($_POST['input_student_validate'])) {
-    die("Akses tidak valid");
-}
-
-// Mengambil action dari form
 $action = $_POST['action'] ?? '';
+$result = ['success' => false, 'message' => 'Action tidak ditemukan'];
 
-/* =========================================================
-   ROUTING CRUD STUDENT
-   ========================================================= */
 switch ($action) {
-
-    // =========================
-    // CREATE (INPUT SISWA)
-    // =========================
     case 'input':
-
         $result = $student->create(
-            $_POST['nis'],
-            $_POST['nama'],
-            $_POST['kelas'],
-            $_POST['username'],
-            $_POST['pass'],
-            $_POST['role']
+            $_POST['nis'] ?? '',
+            $_POST['nama'] ?? '',
+            (int)($_POST['id_kelas'] ?? 0),
+            $_POST['username'] ?? '',
+            $_POST['pass'] ?? '12345',
+            'siswa',
+            $_POST['nisn'] ?? null
         );
-
         break;
 
-    // =========================
-    // UPDATE SISWA
-    // =========================
     case 'update':
-
         $result = $student->update(
-            (int)$_POST['id'],
-            $_POST['username'],
-            $_POST['nama'],
-            $_POST['kelas']
+            (int)($_POST['id_user'] ?? 0),
+            $_POST['username'] ?? '',
+            $_POST['nama'] ?? '',
+            (int)($_POST['id_kelas'] ?? 0),
+            $_POST['nisn'] ?? null
         );
-
         break;
 
-    // =========================
-    // DELETE SISWA
-    // =========================
     case 'delete':
-
-        $result = $student->delete(
-            (int)$_POST['id']
-        );
-
+        $result = $student->delete((int)($_POST['id_user'] ?? 0));
         break;
 
-    // =========================
-    // ACTION TIDAK DIKENALI
-    // =========================
-    default:
-
-        $result = [
-            'success' => false,
-            'message' => 'Action tidak ditemukan'
-        ];
+    case 'upload_excel':
+        if (isset($_FILES['excel_file']) && $_FILES['excel_file']['error'] === UPLOAD_ERR_OK) {
+            $result = $student->importExcel($_FILES['excel_file']['tmp_name'], $_FILES['excel_file']['name']);
+        } else {
+            $result = ['success' => false, 'message' => 'Gagal mengupload file Excel.'];
+        }
+        break;
 }
 
-/* =========================================================
-   RESPONSE KE USER
-   ========================================================= */
-echo "
-<script>
-alert('{$result['message']}');
-window.location='../students';
-</script>
-";
-?>
+$page = (int)($_POST['page'] ?? 1);
+$perPage = (int)($_POST['per_page'] ?? 25);
+if (!in_array($perPage, [25, 50, 100], true)) {
+    $perPage = 25;
+}
+if ($page < 1) {
+    $page = 1;
+}
+
+$redirect = "../students?page={$page}&per_page={$perPage}";
+
+echo "<script>
+alert('" . addslashes($result['message']) . "');
+window.location='{$redirect}';
+</script>";

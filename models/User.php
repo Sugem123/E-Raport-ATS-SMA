@@ -1,96 +1,77 @@
 <?php
 
-// Class User digunakan untuk mengelola autentikasi pengguna
-// seperti login, reset password, dan perubahan password.
 class User
 {
-    // Menyimpan koneksi database
     private mysqli $conn;
 
-    // Constructor untuk menerima koneksi database
-    public function __construct($conn)
+    public function __construct(mysqli $conn)
     {
         $this->conn = $conn;
     }
 
-    // Method login untuk memverifikasi username dan password
-    public function login($username, $password, $role): array
+    public function login(string $username, string $password, string $role): array
     {
-        // Menyiapkan query untuk mencari user berdasarkan username
-        $stmt = mysqli_prepare(
-            $this->conn,
-            "SELECT * FROM tb_user WHERE username=?"
-        );
-
-        // Mengikat parameter username ke query
+        $stmt = mysqli_prepare($this->conn, "SELECT * FROM tb_user WHERE username = ?");
         mysqli_stmt_bind_param($stmt, "s", $username);
         mysqli_stmt_execute($stmt);
+        $result = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
-        // Mengambil data user
-        $result = mysqli_fetch_assoc(
-            mysqli_stmt_get_result($stmt)
-        );
-
-        // Jika user tidak ditemukan, password salah, atau role tidak sesuai
-        if (!$result || !password_verify($password, $result['password']) || $role !== $result['role']) {
-            return [
-                'success' => false
-            ];
+        if (!$result || !password_verify($password, $result['password'])) {
+            return ['success' => false];
         }
 
-        // Menyimpan data dasar user
-        $userId = $result['id_user'];
-        $role = $result['role'];
+        // Cek kecocokan role:
+        // Catatan: Guru yang ditugaskan sebagai wali kelas di tb_kelas diperbolehkan login sebagai 'walikelas'
+        $userRole = $result['role'];
+        if ($role !== $userRole) {
+            if (!($role === 'walikelas' && ($userRole === 'guru' || $userRole === 'walikelas'))) {
+                return ['success' => false];
+            }
+        }
 
-        // Default nama menggunakan username
+        $userId = (int)$result['id_user'];
         $nama = $result['username'];
-
-        // Variabel untuk menyimpan ID sesuai role
         $idRole = null;
+        $idKelas = null;
+        $namaKelas = null;
 
-        // Jika role admin
         if ($role === 'admin') {
-
-            $q = mysqli_query(
-                $this->conn,
-                "SELECT id_admin FROM tb_admin WHERE id_user='$userId'"
-            );
-
+            $q = mysqli_query($this->conn, "SELECT id_admin FROM tb_admin WHERE id_user = $userId");
             $r = mysqli_fetch_assoc($q);
-
-            // Simpan id_admin
-            $idRole = $r['id_admin'];
-
-        // Jika role guru
+            $idRole = $r['id_admin'] ?? 'ADMIN';
+            $nama = 'Administrator';
         } elseif ($role === 'guru') {
-
-            $q = mysqli_query(
-                $this->conn,
-                "SELECT id_guru, nama_guru FROM tb_guru WHERE id_user='$userId'"
-            );
-
+            $q = mysqli_query($this->conn, "SELECT id_guru, nama_guru FROM tb_guru WHERE id_user = $userId");
             $r = mysqli_fetch_assoc($q);
-
-            // Simpan id guru dan nama guru
-            $idRole = $r['id_guru'];
-            $nama = $r['nama_guru'];
-
-        // Jika role siswa
+            $idRole = $r['id_guru'] ?? null;
+            $nama = $r['nama_guru'] ?? $result['username'];
+        } elseif ($role === 'walikelas') {
+            $q = mysqli_query($this->conn, "
+                SELECT g.id_guru, g.nama_guru, k.id_kelas, k.nama_kelas
+                FROM tb_guru g
+                LEFT JOIN tb_kelas k ON g.id_guru = k.id_guru_walikelas
+                WHERE g.id_user = $userId
+                LIMIT 1
+            ");
+            $r = mysqli_fetch_assoc($q);
+            $idRole = $r['id_guru'] ?? null;
+            $nama = $r['nama_guru'] ?? $result['username'];
+            $idKelas = isset($r['id_kelas']) ? (int)$r['id_kelas'] : null;
+            $namaKelas = $r['nama_kelas'] ?? null;
         } elseif ($role === 'siswa') {
-
-            $q = mysqli_query(
-                $this->conn,
-                "SELECT nis, nama FROM tb_siswa WHERE id_user='$userId'"
-            );
-
+            $q = mysqli_query($this->conn, "
+                SELECT s.nis, s.nama, s.id_kelas, k.nama_kelas
+                FROM tb_siswa s
+                INNER JOIN tb_kelas k ON s.id_kelas = k.id_kelas
+                WHERE s.id_user = $userId
+            ");
             $r = mysqli_fetch_assoc($q);
-
-            // Simpan NIS dan nama siswa
-            $idRole = $r['nis'];
-            $nama = $r['nama'];
+            $idRole = $r['nis'] ?? null;
+            $nama = $r['nama'] ?? $result['username'];
+            $idKelas = isset($r['id_kelas']) ? (int)$r['id_kelas'] : null;
+            $namaKelas = $r['nama_kelas'] ?? null;
         }
 
-        // Mengembalikan data login yang berhasil
         return [
             'success' => true,
             'data' => [
@@ -98,79 +79,43 @@ class User
                 'id_role' => $idRole,
                 'username' => $result['username'],
                 'role' => $role,
-                'nama' => $nama
+                'nama' => $nama,
+                'id_kelas' => $idKelas,
+                'nama_kelas' => $namaKelas
             ]
         ];
     }
 
-    // Method untuk mereset password user menjadi "12345"
-    public function resetPassword($id): array
+    public function resetPassword(int $id): array
     {
-        // Hash password default
         $default = password_hash("12345", PASSWORD_BCRYPT);
-
-        // Update password berdasarkan id_user
-        $stmt = mysqli_prepare(
-            $this->conn,
-            "UPDATE tb_user SET password=? WHERE id_user=?"
-        );
-
+        $stmt = mysqli_prepare($this->conn, "UPDATE tb_user SET password = ? WHERE id_user = ?");
         mysqli_stmt_bind_param($stmt, "si", $default, $id);
         mysqli_stmt_execute($stmt);
 
-        return [
-            'success' => true,
-            'message' => 'Password berhasil direset'
-        ];
+        return ['success' => true, 'message' => 'Password berhasil direset ke default (12345)'];
     }
 
-    // Method untuk mengganti password user
-    public function changePassword($username, $old, $new, $confirm): array
+    public function changePassword(string $username, string $old, string $new, string $confirm): array
     {
-        // Ambil data user berdasarkan username
-        $stmt = mysqli_prepare(
-            $this->conn,
-            "SELECT * FROM tb_user WHERE username=?"
-        );
-
+        $stmt = mysqli_prepare($this->conn, "SELECT * FROM tb_user WHERE username = ?");
         mysqli_stmt_bind_param($stmt, "s", $username);
         mysqli_stmt_execute($stmt);
-
         $user = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
-        // Validasi password lama
         if (!$user || !password_verify($old, $user['password'])) {
-            return [
-                'success' => false,
-                'message' => 'Password lama salah'
-            ];
+            return ['success' => false, 'message' => 'Password lama tidak cocok'];
         }
 
-        // Validasi konfirmasi password baru
         if ($new !== $confirm) {
-            return [
-                'success' => false,
-                'message' => 'Konfirmasi password tidak cocok'
-            ];
+            return ['success' => false, 'message' => 'Konfirmasi password baru tidak cocok'];
         }
 
-        // Hash password baru
         $hash = password_hash($new, PASSWORD_BCRYPT);
-
-        // Update password baru ke database
-        $update = mysqli_prepare(
-            $this->conn,
-            "UPDATE tb_user SET password=? WHERE username=?"
-        );
-
+        $update = mysqli_prepare($this->conn, "UPDATE tb_user SET password = ? WHERE username = ?");
         mysqli_stmt_bind_param($update, "ss", $hash, $username);
         mysqli_stmt_execute($update);
 
-        return [
-            'success' => true,
-            'message' => 'Password berhasil diubah'
-        ];
+        return ['success' => true, 'message' => 'Password berhasil diubah'];
     }
 }
-
-?>
