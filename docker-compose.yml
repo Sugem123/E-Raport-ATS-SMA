@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  eraport-ats-app:
+    build: .
+    image: eraport-ats-app:latest
+    container_name: eraport-ats-app
+    restart: unless-stopped
+    ports:
+      - "8094:80"
+    environment:
+      - DB_HOST=eraport-ats-db
+      - DB_PORT=3306
+      - DB_NAME=db_raport
+      - DB_USER=eraport
+      - DB_PASS=eraport_smapra_pass_2026
+      - APP_ENV=production
+    volumes:
+      - eraport_uploads:/var/www/html/uploads
+    depends_on:
+      eraport-ats-db:
+        condition: service_healthy
+    networks:
+      - default
+      - coolify
+    labels:
+      - "coolify.managed=true"
+      - "coolify.name=eraport-ats-app"
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.eraport-ats-http.entryPoints=http"
+      - "traefik.http.routers.eraport-ats-http.rule=Host(`eraport-ats.sman1prambon.my.id`)"
+      - "traefik.http.routers.eraport-ats-https.entryPoints=https"
+      - "traefik.http.routers.eraport-ats-https.rule=Host(`eraport-ats.sman1prambon.my.id`)"
+      - "traefik.http.routers.eraport-ats-https.tls=true"
+      - "traefik.http.routers.eraport-ats-https.tls.certresolver=letsencrypt"
+
+  eraport-ats-db:
+    image: mariadb:10.11
+    container_name: eraport-ats-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: eraport_smapra_root_2026
+      MYSQL_DATABASE: db_raport
+      MYSQL_USER: eraport
+      MYSQL_PASSWORD: eraport_smapra_pass_2026
+    volumes:
+      - eraport_db_data:/var/lib/mysql
+      - ./config/db_raport_master_dump.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
+
+volumes:
+  eraport_db_data:
+    name: eraport_db_data
+  eraport_uploads:
+    name: eraport_uploads
+
+networks:
+  default:
+    name: eraport-ats-network
+  coolify:
+    external: true

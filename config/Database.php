@@ -2,14 +2,22 @@
 // Membuat class Database untuk mengelola koneksi ke database
 class Database
 {
-    // Menyimpan konfigurasi database
-    private $host = "localhost";   // Nama host database
-    private $user = "root";        // Username database
-    private $pass = "";            // Password database
-    private $db   = "db_raport";   // Nama database yang digunakan
+    private $host;
+    private $user;
+    private $pass;
+    private $db;
+    private $port;
 
-    // Variabel untuk menyimpan objek koneksi
     public $conn;
+
+    public function __construct()
+    {
+        $this->host = getenv('DB_HOST') ?: "localhost";
+        $this->user = getenv('DB_USER') ?: "root";
+        $this->pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : "";
+        $this->db   = getenv('DB_NAME') ?: "db_raport";
+        $this->port = getenv('DB_PORT') ? (int)getenv('DB_PORT') : 3306;
+    }
 
     // Method untuk membuat koneksi ke database
     public function connect()
@@ -19,7 +27,8 @@ class Database
             $this->host,
             $this->user,
             $this->pass,
-            $this->db
+            $this->db,
+            $this->port
         );
 
         // Mengecek apakah koneksi berhasil atau gagal
