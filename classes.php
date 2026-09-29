@@ -40,24 +40,27 @@ while ($row = mysqli_fetch_assoc($allStudentsQuery)) {
     ];
 }
 
-// Ambil daftar mata pelajaran terpetakan per jenjang (10, 11, 12)
-$qMapelMapped = mysqli_query($conn, "
-    SELECT m.jenjang, m.id_mapel, r.nama_mapel, m.kategori, m.urutan
-    FROM tb_mapel_mapping m
-    INNER JOIN tb_mapel_referensi r ON m.id_mapel = r.id_mapel
-    ORDER BY m.jenjang ASC,
-             CASE WHEN m.kategori = 'Umum' THEN 1 ELSE 2 END ASC,
-             m.urutan ASC,
-             r.nama_mapel ASC
-");
+// Ambil seluruh mata pelajaran referensi (28 mapel) beserta kategori mapping per jenjang (10, 11, 12)
 $mapelByJenjang = ['10' => [], '11' => [], '12' => []];
-while ($row = mysqli_fetch_assoc($qMapelMapped)) {
-    $mapelByJenjang[$row['jenjang']][] = [
-        'id_mapel'   => $row['id_mapel'],
-        'nama_mapel' => $row['nama_mapel'],
-        'kategori'   => $row['kategori'],
-        'urutan'     => (int)$row['urutan']
-    ];
+foreach (['10', '11', '12'] as $j) {
+    $qMapelMapped = mysqli_query($conn, "
+        SELECT r.id_mapel, r.nama_mapel,
+               COALESCE(m.kategori, 'Pilihan') AS kategori,
+               COALESCE(m.urutan, 999) AS urutan
+        FROM tb_mapel_referensi r
+        LEFT JOIN tb_mapel_mapping m ON (r.id_mapel = m.id_mapel AND m.jenjang = '$j')
+        ORDER BY CASE WHEN COALESCE(m.kategori, 'Pilihan') = 'Umum' THEN 1 ELSE 2 END ASC,
+                 COALESCE(m.urutan, 999) ASC,
+                 r.nama_mapel ASC
+    ");
+    while ($row = mysqli_fetch_assoc($qMapelMapped)) {
+        $mapelByJenjang[$j][] = [
+            'id_mapel'   => $row['id_mapel'],
+            'nama_mapel' => $row['nama_mapel'],
+            'kategori'   => $row['kategori'],
+            'urutan'     => (int)$row['urutan']
+        ];
+    }
 }
 
 // Ambil penugasan mengajar yang sedang aktif di tb_pengampu
@@ -521,11 +524,27 @@ while ($row = mysqli_fetch_assoc($qPengampu)) {
                         Daftar mata pelajaran di bawah ini disesuaikan dengan <strong>Kurikulum Jenjang Kelas</strong> (Kelompok Umum & Kelompok Pilihan). Pilih guru pengampu pada menu *dropdown* di sebelah kanan. Semua pilihan otomatis terekap ke <strong>Penugasan Mengajar Guru</strong>, <strong>Template Nilai Guru</strong>, dan <strong>Lembar Rapor Siswa</strong>.
                     </div>
 
-                    <!-- Live Search Input -->
-                    <div class="input-group input-group-sm mb-3">
-                        <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                        <input type="text" class="form-control" id="inputLiveSearchPembelajaran"
-                               placeholder="Ketik nama mapel atau kode untuk menyaring daftar...">
+                    <!-- Filter Tabs & Live Search -->
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <div class="btn-group btn-group-sm" role="group" id="filterGroupPembelajaran">
+                            <button type="button" class="btn btn-outline-secondary active btn-filter-pembelajaran" data-filter="all">
+                                Semua Mapel (<span id="cntAllPembelajaran">0</span>)
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-filter-pembelajaran" data-filter="umum">
+                                <i class="fa-solid fa-layer-group me-1"></i> Kelompok Umum (<span id="cntUmumPembelajaran">0</span>)
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-filter-pembelajaran" data-filter="pilihan">
+                                <i class="fa-solid fa-list-check me-1"></i> Kelompok Pilihan (<span id="cntPilihanPembelajaran">0</span>)
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-filter-pembelajaran" data-filter="assigned">
+                                <i class="fa-solid fa-user-check me-1"></i> Sudah Ada Guru (<span id="cntAssignedPembelajaran">0</span>)
+                            </button>
+                        </div>
+                        <div class="input-group input-group-sm" style="max-width: 280px;">
+                            <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                            <input type="text" class="form-control" id="inputLiveSearchPembelajaran"
+                                   placeholder="Cari mapel atau kode...">
+                        </div>
                     </div>
 
                     <!-- Tabel Daftar Mapel & Dropdown Guru -->
@@ -616,12 +635,22 @@ function openModalPembelajaranKelas(idKelas) {
     const umum = mapelList.filter(m => m.kategori.toLowerCase() === 'umum');
     const pilihan = mapelList.filter(m => m.kategori.toLowerCase() === 'pilihan');
 
+    document.getElementById('cntAllPembelajaran').textContent = mapelList.length;
+    document.getElementById('cntUmumPembelajaran').textContent = umum.length;
+    document.getElementById('cntPilihanPembelajaran').textContent = pilihan.length;
+    document.getElementById('cntAssignedPembelajaran').textContent = assignedCount;
+
+    // Reset filter buttons active state
+    document.querySelectorAll('.btn-filter-pembelajaran').forEach(b => b.classList.remove('active'));
+    document.querySelector('.btn-filter-pembelajaran[data-filter="all"]')?.classList.add('active');
+
     function renderGroupMapel(groupItems, groupName, groupColor, startNo) {
         if (groupItems.length === 0) return startNo;
 
         const headerTr = document.createElement('tr');
         headerTr.className = 'table-light row-group-header';
-        headerTr.innerHTML = `<td colspan="5" class="fw-bold text-${groupColor} ps-3 py-2"><i class="fa-solid fa-layer-group me-1"></i> ${groupName}</td>`;
+        headerTr.id = 'headerGroup' + (groupName.includes('Umum') ? 'Umum' : 'Pilihan');
+        headerTr.innerHTML = `<td colspan="5" class="fw-bold text-${groupColor} ps-3 py-2"><i class="fa-solid fa-layer-group me-1"></i> ${groupName} (${groupItems.length} Mapel)</td>`;
         tbody.appendChild(headerTr);
 
         let no = startNo;
@@ -632,6 +661,9 @@ function openModalPembelajaranKelas(idKelas) {
             const activeGuruId = currentPengampu[m.id_mapel] || '';
             const safeMapelName = escapeHtml(m.nama_mapel);
             const safeMapelId = escapeHtml(m.id_mapel);
+
+            tr.setAttribute('data-kategori', m.kategori.toLowerCase());
+            tr.setAttribute('data-assigned', activeGuruId ? 'true' : 'false');
 
             let optionsHtml = '<option value="">-- Belum Ditugaskan / Kosong --</option>';
             STORE_GURU.forEach(g => {
@@ -655,6 +687,15 @@ function openModalPembelajaranKelas(idKelas) {
                 </td>
             `;
 
+            // Event listener saat guru dipilih
+            const selEl = tr.querySelector('select');
+            selEl.addEventListener('change', function() {
+                const isAssigned = this.value !== '';
+                tr.setAttribute('data-assigned', isAssigned ? 'true' : 'false');
+                this.classList.toggle('border-primary', isAssigned);
+                updateAssignedBadge();
+            });
+
             tbody.appendChild(tr);
         });
 
@@ -670,22 +711,63 @@ function openModalPembelajaranKelas(idKelas) {
     modal.show();
 }
 
-// Live search in pembelajaran modal
-document.getElementById('inputLiveSearchPembelajaran').addEventListener('input', function() {
-    const q = this.value.toLowerCase().trim();
+function updateAssignedBadge() {
+    const assigned = document.querySelectorAll('#tbodyPembelajaranModal tr.row-item-mapel[data-assigned="true"]').length;
+    const total = document.querySelectorAll('#tbodyPembelajaranModal tr.row-item-mapel').length;
+    const badge = document.getElementById('cntAssignedPembelajaran');
+    if (badge) badge.textContent = assigned;
+    const badgeTotal = document.getElementById('badgeTotalMapelPembelajaran');
+    if (badgeTotal) badgeTotal.textContent = assigned + ' dari ' + total + ' Mapel Ditugaskan';
+}
+
+// Handler filter pills kelompok mapel
+document.querySelectorAll('.btn-filter-pembelajaran').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.btn-filter-pembelajaran').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        applyPembelajaranFilter();
+    });
+});
+
+function applyPembelajaranFilter() {
+    const activeFilter = document.querySelector('.btn-filter-pembelajaran.active')?.getAttribute('data-filter') || 'all';
+    const q = document.getElementById('inputLiveSearchPembelajaran').value.toLowerCase().trim();
+
     const rows = document.querySelectorAll('#tbodyPembelajaranModal tr.row-item-mapel');
+    const headerUmum = document.getElementById('headerGroupUmum');
+    const headerPilihan = document.getElementById('headerGroupPilihan');
+
+    let visibleUmum = 0;
+    let visiblePilihan = 0;
 
     rows.forEach(r => {
+        const kat = r.getAttribute('data-kategori');
+        const isAssigned = r.getAttribute('data-assigned') === 'true';
         const kode = r.querySelector('.cell-kodemapel')?.textContent.toLowerCase() || '';
         const nama = r.querySelector('.cell-namamapel')?.textContent.toLowerCase() || '';
 
-        if (kode.includes(q) || nama.includes(q)) {
+        const matchSearch = (!q || kode.includes(q) || nama.includes(q));
+        let matchFilter = true;
+
+        if (activeFilter === 'umum') matchFilter = (kat === 'umum');
+        else if (activeFilter === 'pilihan') matchFilter = (kat === 'pilihan');
+        else if (activeFilter === 'assigned') matchFilter = isAssigned;
+
+        if (matchSearch && matchFilter) {
             r.style.display = '';
+            if (kat === 'umum') visibleUmum++;
+            else visiblePilihan++;
         } else {
             r.style.display = 'none';
         }
     });
-});
+
+    if (headerUmum) headerUmum.style.display = (visibleUmum > 0 && activeFilter !== 'pilihan') ? '' : 'none';
+    if (headerPilihan) headerPilihan.style.display = (visiblePilihan > 0 && activeFilter !== 'umum') ? '' : 'none';
+}
+
+// Live search in pembelajaran modal
+document.getElementById('inputLiveSearchPembelajaran').addEventListener('input', applyPembelajaranFilter);
 
 function openModalAnggotaKelas(idKelas) {
     currentActiveKelasId = idKelas;
