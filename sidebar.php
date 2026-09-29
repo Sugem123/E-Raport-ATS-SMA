@@ -106,6 +106,12 @@ function navActive(string $target, string $current): string {
                         <span>Kelola Admin</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('backup-restore', $currentX) ?>" href="backup-restore">
+                        <i class="fa-solid fa-database text-warning"></i>
+                        <span>Backup &amp; Restore</span>
+                    </a>
+                </li>
                 <?php } ?>
 
                 <?php if (($_SESSION["role"] ?? '') === "guru") { ?>

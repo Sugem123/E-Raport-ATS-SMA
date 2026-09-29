@@ -41,6 +41,15 @@ switch ($x) {
         include "main.php";
         break;
 
+    case 'backup-restore':
+        if (($_SESSION["role"] ?? '') === "admin") {
+            $page = "backup-restore.php";
+        } else {
+            $page = "home.php";
+        }
+        include "main.php";
+        break;
+
     case 'classes':
         if (($_SESSION["role"] ?? '') === "admin") {
             $page = "classes.php";
