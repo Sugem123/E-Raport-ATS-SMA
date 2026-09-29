@@ -35,6 +35,60 @@ switch ($action) {
         }
         break;
 
+    case 'save_pembelajaran':
+        $idKelas = (int)($_POST['id_kelas'] ?? 0);
+        $guruList = $_POST['guru'] ?? []; // [ id_mapel => id_guru, ... ]
+
+        if ($idKelas <= 0) {
+            $result = ['success' => false, 'message' => 'Kelas tidak valid.'];
+            break;
+        }
+
+        $saved = 0;
+        $removed = 0;
+
+        foreach ($guruList as $idMapel => $idGuru) {
+            $idMapel = trim((string)$idMapel);
+            $idGuru  = trim((string)$idGuru);
+
+            if ($idGuru !== '') {
+                // Cek apakah sudah ada pengampu untuk mapel di kelas ini
+                $cek = mysqli_prepare($conn, "SELECT id_pengampu, id_guru FROM tb_pengampu WHERE id_kelas = ? AND id_mapel = ? LIMIT 1");
+                mysqli_stmt_bind_param($cek, "is", $idKelas, $idMapel);
+                mysqli_stmt_execute($cek);
+                $rCek = mysqli_fetch_assoc(mysqli_stmt_get_result($cek));
+
+                if ($rCek) {
+                    // Update guru pengampu (menjaga FK id_pengampu dan nilai yang sudah ada)
+                    if ($rCek['id_guru'] !== $idGuru) {
+                        $upd = mysqli_prepare($conn, "UPDATE tb_pengampu SET id_guru = ? WHERE id_pengampu = ?");
+                        mysqli_stmt_bind_param($upd, "si", $idGuru, $rCek['id_pengampu']);
+                        mysqli_stmt_execute($upd);
+                    }
+                } else {
+                    // Insert baru
+                    $ins = mysqli_prepare($conn, "INSERT INTO tb_pengampu (id_guru, id_mapel, id_kelas) VALUES (?, ?, ?)");
+                    mysqli_stmt_bind_param($ins, "ssi", $idGuru, $idMapel, $idKelas);
+                    mysqli_stmt_execute($ins);
+                }
+                $saved++;
+            } else {
+                // Jika dikosongkan guru pengampunya, hapus baris pengampu jika ada
+                $del = mysqli_prepare($conn, "DELETE FROM tb_pengampu WHERE id_kelas = ? AND id_mapel = ?");
+                mysqli_stmt_bind_param($del, "is", $idKelas, $idMapel);
+                mysqli_stmt_execute($del);
+                if (mysqli_affected_rows($conn) > 0) {
+                    $removed++;
+                }
+            }
+        }
+
+        $result = [
+            'success' => true,
+            'message' => "Pembelajaran kelas berhasil disimpan. $saved mata pelajaran aktif ditugaskan guru" . ($removed > 0 ? ", $removed penugasan dikosongkan." : ".")
+        ];
+        break;
+
     case 'add_student_new':
         require_once __DIR__ . '/../models/Student.php';
         $studentModel = new Student($conn);

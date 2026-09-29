@@ -39,6 +39,33 @@ while ($row = mysqli_fetch_assoc($allStudentsQuery)) {
         'nama_kelas' => $row['nama_kelas']
     ];
 }
+
+// Ambil daftar mata pelajaran terpetakan per jenjang (10, 11, 12)
+$qMapelMapped = mysqli_query($conn, "
+    SELECT m.jenjang, m.id_mapel, r.nama_mapel, m.kategori, m.urutan
+    FROM tb_mapel_mapping m
+    INNER JOIN tb_mapel_referensi r ON m.id_mapel = r.id_mapel
+    ORDER BY m.jenjang ASC,
+             CASE WHEN m.kategori = 'Umum' THEN 1 ELSE 2 END ASC,
+             m.urutan ASC,
+             r.nama_mapel ASC
+");
+$mapelByJenjang = ['10' => [], '11' => [], '12' => []];
+while ($row = mysqli_fetch_assoc($qMapelMapped)) {
+    $mapelByJenjang[$row['jenjang']][] = [
+        'id_mapel'   => $row['id_mapel'],
+        'nama_mapel' => $row['nama_mapel'],
+        'kategori'   => $row['kategori'],
+        'urutan'     => (int)$row['urutan']
+    ];
+}
+
+// Ambil penugasan mengajar yang sedang aktif di tb_pengampu
+$qPengampu = mysqli_query($conn, "SELECT id_kelas, id_mapel, id_guru FROM tb_pengampu");
+$pengampuByClass = [];
+while ($row = mysqli_fetch_assoc($qPengampu)) {
+    $pengampuByClass[$row['id_kelas']][$row['id_mapel']] = $row['id_guru'];
+}
 ?>
 
 <div class="col-lg-9 mt-2">
@@ -66,7 +93,7 @@ while ($row = mysqli_fetch_assoc($allStudentsQuery)) {
                             <th>Nama Kelas</th>
                             <th>Tingkat</th>
                             <th>Wali Kelas</th>
-                            <th style="width: 24%">Aksi</th>
+                            <th style="width: 28%">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -76,6 +103,7 @@ while ($row = mysqli_fetch_assoc($allStudentsQuery)) {
                             $no = 1;
                             foreach ($classes as $c) {
                                 $totalSiswaKelas = (int)($c['total_siswa'] ?? count($studentsByClass[$c['id_kelas']] ?? []));
+                                $totalMapelKelas = (int)($c['total_mapel'] ?? 0);
                         ?>
                             <tr>
                                 <td><?= $no++ ?></td>
@@ -87,6 +115,12 @@ while ($row = mysqli_fetch_assoc($allStudentsQuery)) {
                                                 data-id-kelas="<?= $c['id_kelas'] ?>"
                                                 title="Klik untuk membuka daftar anggota kelas">
                                             <i class="fa-solid fa-users me-1"></i> <?= $totalSiswaKelas ?> Siswa
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info btn-sm rounded-pill px-2 py-0 btn-trigger-pembelajaran"
+                                                style="font-size: 11.5px; font-weight: 600;"
+                                                data-id-kelas="<?= $c['id_kelas'] ?>"
+                                                title="Klik untuk mengatur guru pembelajaran">
+                                            <i class="fa-solid fa-book-open me-1"></i> <?= $totalMapelKelas ?> Mapel
                                         </button>
                                     </div>
                                 </td>
@@ -103,6 +137,11 @@ while ($row = mysqli_fetch_assoc($allStudentsQuery)) {
                                             data-id-kelas="<?= $c['id_kelas'] ?>"
                                             title="Kelola Anggota Siswa (<?= $totalSiswaKelas ?> Siswa)">
                                         <i class="fa-solid fa-users me-1"></i> Anggota
+                                    </button>
+                                    <button class="btn btn-primary btn-sm text-white me-1 btn-trigger-pembelajaran"
+                                            data-id-kelas="<?= $c['id_kelas'] ?>"
+                                            title="Atur Guru Pembelajaran Kelas <?= htmlspecialchars($c['nama_kelas']) ?>">
+                                        <i class="fa-solid fa-book-bookmark me-1"></i> Pembelajaran
                                     </button>
                                     <button class="btn btn-warning btn-sm me-1" data-bs-toggle="modal" data-bs-target="#ModalEditKelas<?= $c['id_kelas'] ?>" title="Edit Kelas">
                                         <i class="fa fa-edit"></i>
@@ -451,11 +490,82 @@ while ($row = mysqli_fetch_assoc($allStudentsQuery)) {
     </div>
 </div>
 
+<!-- ======================================================================= -->
+<!-- FLOATING MODAL: ATUR PEMBELAJARAN & GURU MAPEL PER KELAS                -->
+<!-- ======================================================================= -->
+<div class="modal fade" id="ModalPembelajaranKelas" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content shadow-lg border-0" style="border-radius: 18px;">
+            <form action="controllers/kelas.php" method="POST" id="formPembelajaranKelas">
+                <input type="hidden" name="action" value="save_pembelajaran">
+                <input type="hidden" name="id_kelas" id="pembelajaranHiddenIdKelas" value="">
+
+                <div class="modal-header bg-light py-3 border-bottom">
+                    <div>
+                        <h5 class="modal-title fw-bold text-primary mb-1">
+                            <i class="fa-solid fa-book-bookmark me-2"></i>Pembelajaran & Guru Pengampu: <span id="labelNamaKelasPembelajaran">-</span>
+                        </h5>
+                        <div class="small text-muted">
+                            <span class="badge bg-primary-subtle text-primary border border-primary px-2 py-1 me-2 fw-bold" id="badgeTotalMapelPembelajaran">
+                                0 Mapel Ditugaskan
+                            </span>
+                            <span id="labelTingkatFasePembelajaran">Tingkat 10 (Fase E)</span> &bull; <span id="labelWaliPembelajaran">Wali: -</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <div class="alert alert-light border small text-muted py-2 mb-3">
+                        <i class="fa-solid fa-circle-info text-primary me-1"></i>
+                        Daftar mata pelajaran di bawah ini disesuaikan dengan <strong>Kurikulum Jenjang Kelas</strong> (Kelompok Umum & Kelompok Pilihan). Pilih guru pengampu pada menu *dropdown* di sebelah kanan. Semua pilihan otomatis terekap ke <strong>Penugasan Mengajar Guru</strong>, <strong>Template Nilai Guru</strong>, dan <strong>Lembar Rapor Siswa</strong>.
+                    </div>
+
+                    <!-- Live Search Input -->
+                    <div class="input-group input-group-sm mb-3">
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                        <input type="text" class="form-control" id="inputLiveSearchPembelajaran"
+                               placeholder="Ketik nama mapel atau kode untuk menyaring daftar...">
+                    </div>
+
+                    <!-- Tabel Daftar Mapel & Dropdown Guru -->
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle border mb-0" id="tablePembelajaranModal">
+                            <thead class="table-light">
+                                <tr class="text-center">
+                                    <th style="width: 5%">No</th>
+                                    <th style="width: 12%">Kode</th>
+                                    <th class="text-start">Mata Pelajaran</th>
+                                    <th style="width: 14%">Kelompok</th>
+                                    <th style="width: 44%">Pilih Guru Pengampu</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyPembelajaranModal">
+                                <!-- Diisi dinamis oleh JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light py-2 d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-success btn-sm px-4 fw-bold shadow-sm">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Pembelajaran Kelas
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Data Store untuk Dynamic Modal -->
 <script>
 const STORE_KELAS = <?= json_encode($classes, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 const STORE_SISWA_PER_KELAS = <?= json_encode($studentsByClass, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 const STORE_SEMUA_SISWA = <?= json_encode($allStudentsFlat, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+const STORE_MAPEL_BY_JENJANG = <?= json_encode($mapelByJenjang, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+const STORE_PENGAMPU_BY_KELAS = <?= json_encode($pengampuByClass, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+const STORE_GURU = <?= json_encode($teachers, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 
 let currentActiveKelasId = null;
 
@@ -464,6 +574,116 @@ document.querySelectorAll('.btn-trigger-anggota').forEach(btn => {
     btn.addEventListener('click', function() {
         const idKelas = parseInt(this.getAttribute('data-id-kelas'));
         openModalAnggotaKelas(idKelas);
+    });
+});
+
+// Event handler saat tombol Pembelajaran diklik
+document.querySelectorAll('.btn-trigger-pembelajaran').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const idKelas = parseInt(this.getAttribute('data-id-kelas'));
+        openModalPembelajaranKelas(idKelas);
+    });
+});
+
+function openModalPembelajaranKelas(idKelas) {
+    const kelas = STORE_KELAS.find(k => parseInt(k.id_kelas) === idKelas);
+    if (!kelas) return;
+
+    document.getElementById('pembelajaranHiddenIdKelas').value = idKelas;
+    document.getElementById('labelNamaKelasPembelajaran').textContent = 'Kelas ' + kelas.nama_kelas;
+    document.getElementById('labelTingkatFasePembelajaran').textContent = 'Tingkat ' + kelas.tingkat + ' (Fase ' + (kelas.tingkat === '10' ? 'E' : 'F') + ')';
+    document.getElementById('labelWaliPembelajaran').textContent = 'Wali: ' + (kelas.nama_walikelas || 'Belum ditentukan');
+
+    const tingkatKey = String(kelas.tingkat);
+    const mapelList = STORE_MAPEL_BY_JENJANG[tingkatKey] || [];
+    const currentPengampu = STORE_PENGAMPU_BY_KELAS[idKelas] || {};
+
+    let assignedCount = 0;
+    mapelList.forEach(m => {
+        if (currentPengampu[m.id_mapel]) assignedCount++;
+    });
+    document.getElementById('badgeTotalMapelPembelajaran').textContent = assignedCount + ' dari ' + mapelList.length + ' Mapel Ditugaskan';
+
+    const tbody = document.getElementById('tbodyPembelajaranModal');
+    tbody.innerHTML = '';
+
+    if (mapelList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Belum ada pemetaan mapel untuk tingkat ini di Mapping Mapel.</td></tr>';
+        return;
+    }
+
+    // Split into Umum & Pilihan
+    const umum = mapelList.filter(m => m.kategori.toLowerCase() === 'umum');
+    const pilihan = mapelList.filter(m => m.kategori.toLowerCase() === 'pilihan');
+
+    function renderGroupMapel(groupItems, groupName, groupColor, startNo) {
+        if (groupItems.length === 0) return startNo;
+
+        const headerTr = document.createElement('tr');
+        headerTr.className = 'table-light row-group-header';
+        headerTr.innerHTML = `<td colspan="5" class="fw-bold text-${groupColor} ps-3 py-2"><i class="fa-solid fa-layer-group me-1"></i> ${groupName}</td>`;
+        tbody.appendChild(headerTr);
+
+        let no = startNo;
+        groupItems.forEach(m => {
+            const tr = document.createElement('tr');
+            tr.className = 'row-item-mapel';
+
+            const activeGuruId = currentPengampu[m.id_mapel] || '';
+            const safeMapelName = escapeHtml(m.nama_mapel);
+            const safeMapelId = escapeHtml(m.id_mapel);
+
+            let optionsHtml = '<option value="">-- Belum Ditugaskan / Kosong --</option>';
+            STORE_GURU.forEach(g => {
+                const isSel = (String(g.id_guru) === String(activeGuruId)) ? 'selected' : '';
+                optionsHtml += `<option value="${escapeHtml(g.id_guru)}" ${isSel}>${escapeHtml(g.nama_guru)} (${escapeHtml(g.id_guru)})</option>`;
+            });
+
+            tr.innerHTML = `
+                <td class="text-center">${no++}</td>
+                <td class="text-center font-monospace small cell-kodemapel"><span class="badge bg-light text-dark border">${safeMapelId}</span></td>
+                <td class="fw-semibold text-dark cell-namamapel">${safeMapelName}</td>
+                <td class="text-center">
+                    <span class="badge ${m.kategori.toLowerCase() === 'umum' ? 'bg-success-subtle text-success border border-success' : 'bg-primary-subtle text-primary border border-primary'}">
+                        ${escapeHtml(m.kategori)}
+                    </span>
+                </td>
+                <td>
+                    <select name="guru[${safeMapelId}]" class="form-select form-select-sm select-guru-pembelajaran ${activeGuruId ? 'border-primary' : ''}">
+                        ${optionsHtml}
+                    </select>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+
+        return no;
+    }
+
+    renderGroupMapel(umum, 'Kelompok Umum', 'success', 1);
+    renderGroupMapel(pilihan, 'Kelompok Pilihan', 'primary', 1);
+
+    document.getElementById('inputLiveSearchPembelajaran').value = '';
+
+    const modal = new bootstrap.Modal(document.getElementById('ModalPembelajaranKelas'));
+    modal.show();
+}
+
+// Live search in pembelajaran modal
+document.getElementById('inputLiveSearchPembelajaran').addEventListener('input', function() {
+    const q = this.value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#tbodyPembelajaranModal tr.row-item-mapel');
+
+    rows.forEach(r => {
+        const kode = r.querySelector('.cell-kodemapel')?.textContent.toLowerCase() || '';
+        const nama = r.querySelector('.cell-namamapel')?.textContent.toLowerCase() || '';
+
+        if (kode.includes(q) || nama.includes(q)) {
+            r.style.display = '';
+        } else {
+            r.style.display = 'none';
+        }
     });
 });
 

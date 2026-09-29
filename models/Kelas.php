@@ -12,7 +12,8 @@ class Kelas
     public function getAll(): array
     {
         $sql = "SELECT k.*, g.nama_guru AS nama_walikelas,
-                       (SELECT COUNT(*) FROM tb_siswa s WHERE s.id_kelas = k.id_kelas) AS total_siswa
+                       (SELECT COUNT(*) FROM tb_siswa s WHERE s.id_kelas = k.id_kelas) AS total_siswa,
+                       (SELECT COUNT(*) FROM tb_pengampu p WHERE p.id_kelas = k.id_kelas) AS total_mapel
                 FROM tb_kelas k
                 LEFT JOIN tb_guru g ON k.id_guru_walikelas = g.id_guru
                 ORDER BY k.tingkat ASC, k.nama_kelas ASC";
