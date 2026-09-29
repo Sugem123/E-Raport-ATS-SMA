@@ -53,6 +53,21 @@ switch ($action) {
             $result = ['success' => false, 'message' => 'Gagal mengupload file Excel.'];
         }
         break;
+
+    case 'reorder':
+        $rawOrder = $_POST['order'] ?? [];
+        if (is_string($rawOrder)) {
+            $rawOrder = json_decode($rawOrder, true) ?: [];
+        }
+        $result = $model->reorder($jenjangPost, (array)$rawOrder);
+
+        // Jika request via AJAX / Fetch
+        if (!empty($_POST['ajax']) || !empty($_GET['ajax']) || (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'], 'json') !== false)) {
+            header('Content-Type: application/json');
+            echo json_encode($result);
+            exit;
+        }
+        break;
 }
 
 echo "<script>

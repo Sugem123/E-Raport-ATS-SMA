@@ -180,6 +180,41 @@ class MapelMapping
     }
 
     /**
+     * Memperbarui urutan seluruh mata pelajaran pada suatu jenjang (Reorder Geser Atas/Bawah)
+     * $orderList adalah array urutan ID Mapel: ['PAIDBP', 'P.Pan', 'BIN', ...]
+     * Nomor urutan otomatis diatur ulang 1, 2, 3, ...
+     */
+    public function reorder(string $jenjang, array $orderList): array
+    {
+        $jenjang = $this->normalizeJenjang($jenjang);
+        if ($jenjang === '') {
+            return ['success' => false, 'message' => 'Jenjang tidak valid.'];
+        }
+
+        $stmt = mysqli_prepare($this->conn, "UPDATE tb_mapel_mapping SET urutan = ? WHERE id_mapel = ? AND jenjang = ?");
+        $urutan = 1;
+        $updated = 0;
+
+        foreach ($orderList as $idMapel) {
+            $idMapel = trim((string)$idMapel);
+            if ($idMapel === '') {
+                continue;
+            }
+
+            mysqli_stmt_bind_param($stmt, "iss", $urutan, $idMapel, $jenjang);
+            if (mysqli_stmt_execute($stmt)) {
+                $updated++;
+            }
+            $urutan++;
+        }
+
+        return [
+            'success' => true,
+            'message' => "Urutan $updated mata pelajaran berhasil diperbarui."
+        ];
+    }
+
+    /**
      * Salin seluruh mapping dari satu jenjang ke jenjang lain.
      * Berguna saat mewarisi struktur mapel XI ke XII.
      */
