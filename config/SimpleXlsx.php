@@ -347,7 +347,7 @@ class SimpleXlsx
         $sheetData .= '<row r="4"><c r="A4" s="2" t="inlineStr"><is><t>Guru Pengampu</t></is></c><c r="B4" s="3" t="inlineStr"><is><t>: ' . $safeGuru . '</t></is></c></row>';
 
         // Row 5: Petunjuk Pengisian
-        $sheetData .= '<row r="5"><c r="A5" s="8" t="inlineStr"><is><t>*Petunjuk: Isi nilai pada kolom sumatif_1, sumatif_2, sumatif_3, dan nilai_sts. Jangan mengubah kolom NIS dan nama siswa.</t></is></c></row>';
+        $sheetData .= '<row r="5"><c r="A5" s="8" t="inlineStr"><is><t>*Petunjuk: Isi angka nilai pada kolom sumatif_1, sumatif_2, sumatif_3, sumatif_4, dan nilai_ats. Jangan mengubah kolom NIS dan nama siswa.</t></is></c></row>';
 
         // Row 6: Header Tabel (Border + Soft Blue + Center)
         $sheetData .= '<row r="6" ht="26">';
@@ -379,7 +379,7 @@ class SimpleXlsx
                     $safeVal = htmlspecialchars((string)$val, ENT_QUOTES | ENT_XML1, 'UTF-8');
                     $sheetData .= '<c r="' . $colLetter . $rowIdx . '" s="6" t="inlineStr"><is><t>' . $safeVal . '</t></is></c>';
                 } else {
-                    // Col C, D, E, F: Nilai Sumatif 1, 2, 3, Nilai STS (Center, Border, Bebas diedit & paste)
+                    // Col C, D, E, F, G: Sumatif 1, 2, 3, 4, Nilai ATS (Center, Border, Bebas diedit & paste)
                     if ($val === '' || $val === null) {
                         $sheetData .= '<c r="' . $colLetter . $rowIdx . '" s="7"/>';
                     } elseif (is_numeric($val)) {
@@ -398,7 +398,7 @@ class SimpleXlsx
 
         $sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <dimension ref="A1:F' . $totalRows . '"/>
+  <dimension ref="A1:G' . $totalRows . '"/>
   <sheetViews>
     <sheetView tabSelected="1" workbookViewId="0"/>
   </sheetViews>
@@ -410,6 +410,7 @@ class SimpleXlsx
     <col min="4" max="4" width="14" customWidth="1"/>
     <col min="5" max="5" width="14" customWidth="1"/>
     <col min="6" max="6" width="14" customWidth="1"/>
+    <col min="7" max="7" width="14" customWidth="1"/>
   </cols>
   ' . $sheetData . '
 </worksheet>';

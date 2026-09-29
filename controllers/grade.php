@@ -28,12 +28,13 @@ $result = ['success' => false, 'message' => 'Action tidak valid.'];
 switch ($action) {
     case 'save_grade':
         $nis = $_POST['nis'] ?? '';
-        $s1  = (float)($_POST['sumatif_1'] ?? 0);
-        $s2  = (float)($_POST['sumatif_2'] ?? 0);
-        $s3  = (float)($_POST['sumatif_3'] ?? 0);
-        $sts = (float)($_POST['nilai_sts'] ?? 0);
+        $s1  = (isset($_POST['sumatif_1']) && $_POST['sumatif_1'] !== '') ? (float)$_POST['sumatif_1'] : null;
+        $s2  = (isset($_POST['sumatif_2']) && $_POST['sumatif_2'] !== '') ? (float)$_POST['sumatif_2'] : null;
+        $s3  = (isset($_POST['sumatif_3']) && $_POST['sumatif_3'] !== '') ? (float)$_POST['sumatif_3'] : null;
+        $s4  = (isset($_POST['sumatif_4']) && $_POST['sumatif_4'] !== '') ? (float)$_POST['sumatif_4'] : null;
+        $sts = (isset($_POST['nilai_sts']) && $_POST['nilai_sts'] !== '') ? (float)$_POST['nilai_sts'] : null;
 
-        $result = $grade->saveGrade($nis, $idPengampu, $s1, $s2, $s3, $sts);
+        $result = $grade->saveGrade($nis, $idPengampu, $s1, $s2, $s3, $s4, $sts);
         break;
 
     case 'upload_excel':

@@ -114,6 +114,18 @@ class ExcelHelper
                 SimpleXlsx::download('template_mapping_mapel.xlsx', $headers, $sample);
                 break;
 
+            case 'penugasan':
+                // Template PENUGASAN MENGAJAR GURU (tb_pengampu)
+                $headers = ['id_guru', 'nama_guru', 'id_mapel', 'nama_mapel', 'nama_kelas'];
+                $sample = [
+                    ['198108202009031004', 'SONY SUMARSONO, S.Pd.', 'SDB', 'Seni dan Budaya', 'X-1'],
+                    ['199105092025212137', 'AYU NINGSIH, S.Pd.', 'BIG', 'Bahasa Inggris', 'X-1'],
+                    ['196806191995032003', 'Dra. WIWIK WIDAYATI', 'B', 'Biologi', 'X-1'],
+                    ['199310222024211006', 'ACHMAD SYAIFUL, S.Pd.', 'MTL', 'Matematika Tingkat Lanjut', 'XI-5'],
+                ];
+                SimpleXlsx::download('template_penugasan_mengajar.xlsx', $headers, $sample);
+                break;
+
             case 'siswa':
                 $headers = ['nis', 'nisn', 'nama', 'nama_kelas', 'username'];
                 $sample = [
@@ -130,7 +142,7 @@ class ExcelHelper
                 $namaGuru  = $extraData['nama_guru'] ?? '';
                 $students  = $extraData['students'] ?? [];
 
-                $headers = ['nis', 'nama_siswa', 'sumatif_1', 'sumatif_2', 'sumatif_3', 'nilai_sts'];
+                $headers = ['nis', 'nama_siswa', 'sumatif_1', 'sumatif_2', 'sumatif_3', 'sumatif_4', 'nilai_ats'];
                 $data = [];
                 foreach ($students as $s) {
                     $data[] = [
@@ -139,6 +151,7 @@ class ExcelHelper
                         isset($s['sumatif_1']) && $s['sumatif_1'] !== null ? $s['sumatif_1'] : '',
                         isset($s['sumatif_2']) && $s['sumatif_2'] !== null ? $s['sumatif_2'] : '',
                         isset($s['sumatif_3']) && $s['sumatif_3'] !== null ? $s['sumatif_3'] : '',
+                        isset($s['sumatif_4']) && $s['sumatif_4'] !== null ? $s['sumatif_4'] : '',
                         isset($s['nilai_sts']) && $s['nilai_sts'] !== null ? $s['nilai_sts'] : '',
                     ];
                 }

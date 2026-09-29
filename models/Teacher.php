@@ -201,8 +201,8 @@ class Teacher
 
         // Ambil siswa di kelas tersebut beserta nilai dan presensinya
         $sql = "SELECT s.nis, s.nama, k.nama_kelas,
-                       n.id_nilai, n.sumatif_1, n.sumatif_2, n.sumatif_3, n.rata_sumatif,
-                       n.nilai_sts, n.nilai_akhir, n.status_kelulusan,
+                       n.id_nilai, n.sumatif_1, n.sumatif_2, n.sumatif_3, n.sumatif_4,
+                       n.nilai_sts,
                        COALESCE(pr.sakit, 0) AS sakit,
                        COALESCE(pr.izin, 0) AS izin,
                        COALESCE(pr.alpa, 0) AS alpa

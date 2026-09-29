@@ -38,11 +38,22 @@ $pageUrl = fn(int $p): string => '?page=' . $p . '&per_page=' . $perPage;
 
 <div class="col-lg-9 mt-2">
     <div class="card shadow-sm border-0">
-        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <h5 class="mb-0 fw-bold text-primary"><i class="fa-solid fa-link me-2"></i>Penugasan Mengajar Guru</h5>
-            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#ModalInputPengampu">
-                <i class="fa-solid fa-plus me-1"></i> Tambah Penugasan
-            </button>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="controllers/template.php?type=penugasan" class="btn btn-outline-success btn-sm">
+                    <i class="fa-solid fa-file-excel me-1"></i> Download Template
+                </a>
+                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#ModalUploadPengampu">
+                    <i class="fa-solid fa-upload me-1"></i> Upload Excel
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#ModalResetPengampu">
+                    <i class="fa-solid fa-rotate-left me-1"></i> Reset Semua Penugasan
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#ModalInputPengampu">
+                    <i class="fa-solid fa-plus me-1"></i> Tambah Penugasan
+                </button>
+            </div>
         </div>
         <div class="card-body">
             <div class="alert alert-light border small text-muted mb-3 py-2">
@@ -271,6 +282,68 @@ $pageUrl = fn(int $p): string => '?page=' . $p . '&per_page=' . $perPage;
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Upload Excel Penugasan -->
+<div class="modal fade" id="ModalUploadPengampu" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="controllers/pengampu.php" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="upload_excel">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-file-arrow-up text-primary me-2"></i>Upload Penugasan Guru (Excel / CSV)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3 p-3 bg-light rounded border d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="fw-semibold d-block text-dark small"><i class="fa-solid fa-file-excel text-success me-1"></i> Template Penugasan Mengajar</span>
+                            <small class="text-muted">Unduh format baku sebelum mengunggah</small>
+                        </div>
+                        <a href="controllers/template.php?type=penugasan" class="btn btn-outline-success btn-sm">
+                            <i class="fa-solid fa-download me-1"></i> Download Template
+                        </a>
+                    </div>
+                    <div class="alert alert-info py-2 small">
+                        Format kolom file Excel: <code>id_guru</code>, <code>nama_guru</code> (opsional), <code>id_mapel</code>, <code>nama_mapel</code> (opsional), <code>nama_kelas</code> (contoh: X-1, XI-5).
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Pilih File (.xlsx atau .csv)</label>
+                        <input type="file" class="form-control" name="excel_file" accept=".xlsx, .csv" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success">Upload & Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Reset Semua Penugasan -->
+<div class="modal fade" id="ModalResetPengampu" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="controllers/pengampu.php" method="POST">
+                <input type="hidden" name="action" value="reset">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fa-solid fa-triangle-exclamation me-2"></i>Reset Seluruh Penugasan Guru</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2 fw-semibold text-danger">Peringatan: Tindakan ini akan mengosongkan seluruh data penugasan mengajar guru!</p>
+                    <p class="small text-muted mb-0">
+                        Total <strong><?= $total ?> penugasan</strong> yang saat ini ada di sistem akan dihapus. Anda dapat mengisi ulang kembali penugasan mengajar dengan mengunggah template Excel penugasan.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger fw-bold">Ya, Reset Semua Penugasan</button>
                 </div>
             </form>
         </div>

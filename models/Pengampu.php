@@ -183,4 +183,96 @@ class Pengampu
         }
         return ['success' => false, 'message' => 'Gagal memperbarui penugasan mengajar.'];
     }
+
+    /**
+     * Mengosongkan / mereset seluruh data penugasan mengajar
+     */
+    public function resetAll(): array
+    {
+        mysqli_query($this->conn, "SET FOREIGN_KEY_CHECKS = 0");
+        $res = mysqli_query($this->conn, "TRUNCATE TABLE tb_pengampu");
+        mysqli_query($this->conn, "SET FOREIGN_KEY_CHECKS = 1");
+
+        if ($res) {
+            return ['success' => true, 'message' => 'Seluruh data penugasan mengajar berhasil direset (dikosongkan).'];
+        }
+        return ['success' => false, 'message' => 'Gagal mereset penugasan: ' . mysqli_error($this->conn)];
+    }
+
+    /**
+     * Import penugasan mengajar dari file Excel (.xlsx / .csv)
+     */
+    public function importExcel(string $filePath, string $originalFileName): array
+    {
+        require_once __DIR__ . '/../config/ExcelHelper.php';
+        $rows = ExcelHelper::parse($filePath, $originalFileName);
+        if (empty($rows)) {
+            return ['success' => false, 'message' => 'File Excel kosong atau format tidak sesuai.'];
+        }
+
+        // Cache lookup kelas: nama_kelas / id_kelas -> id_kelas
+        $qK = mysqli_query($this->conn, "SELECT id_kelas, nama_kelas FROM tb_kelas");
+        $mapKelas = [];
+        while ($rK = mysqli_fetch_assoc($qK)) {
+            $norm = strtoupper(str_replace([' ', '-'], '', $rK['nama_kelas']));
+            $mapKelas[$norm] = (int)$rK['id_kelas'];
+            $mapKelas[$rK['nama_kelas']] = (int)$rK['id_kelas'];
+            $mapKelas[(string)$rK['id_kelas']] = (int)$rK['id_kelas'];
+        }
+
+        // Cache lookup guru: id_guru & nama_guru -> id_guru
+        $qG = mysqli_query($this->conn, "SELECT id_guru, nama_guru FROM tb_guru");
+        $mapGuru = [];
+        while ($rG = mysqli_fetch_assoc($qG)) {
+            $mapGuru[trim($rG['id_guru'])] = $rG['id_guru'];
+            $mapGuru[strtolower(trim($rG['nama_guru']))] = $rG['id_guru'];
+        }
+
+        // Cache lookup mapel: id_mapel & nama_mapel -> id_mapel
+        $qM = mysqli_query($this->conn, "SELECT id_mapel, nama_mapel FROM tb_mapel_referensi");
+        $mapMapel = [];
+        while ($rM = mysqli_fetch_assoc($qM)) {
+            $mapMapel[trim($rM['id_mapel'])] = $rM['id_mapel'];
+            $mapMapel[strtolower(trim($rM['nama_mapel']))] = $rM['id_mapel'];
+        }
+
+        $inserted = 0;
+        $skipped = 0;
+
+        foreach ($rows as $row) {
+            $rawGuru = trim((string)($row['id_guru'] ?? ($row['guru'] ?? ($row['nama_guru'] ?? ''))));
+            $rawMapel = trim((string)($row['id_mapel'] ?? ($row['mapel'] ?? ($row['nama_mapel'] ?? ''))));
+            $rawKelas = trim((string)($row['nama_kelas'] ?? ($row['kelas'] ?? ($row['id_kelas'] ?? ''))));
+
+            if (empty($rawGuru) || empty($rawMapel) || empty($rawKelas)) {
+                $skipped++;
+                continue;
+            }
+
+            // Resolve Guru
+            $idGuru = $mapGuru[$rawGuru] ?? ($mapGuru[strtolower($rawGuru)] ?? null);
+            // Resolve Mapel
+            $idMapel = $mapMapel[$rawMapel] ?? ($mapMapel[strtolower($rawMapel)] ?? null);
+            // Resolve Kelas
+            $normKelas = strtoupper(str_replace([' ', '-'], '', $rawKelas));
+            $idKelas = $mapKelas[$rawKelas] ?? ($mapKelas[$normKelas] ?? null);
+
+            if (!$idGuru || !$idMapel || !$idKelas) {
+                $skipped++;
+                continue;
+            }
+
+            $res = $this->create($idGuru, $idMapel, $idKelas);
+            if ($res['success']) {
+                $inserted++;
+            } else {
+                $skipped++;
+            }
+        }
+
+        return [
+            'success' => true,
+            'message' => "Import penugasan mengajar selesai. $inserted data berhasil ditambahkan, $skipped dilewati/sudah ada."
+        ];
+    }
 }

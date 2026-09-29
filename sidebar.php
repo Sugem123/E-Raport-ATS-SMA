@@ -92,12 +92,14 @@ function navActive(string $target, string $current): string {
                         <span>Format Cetak Rapor</span>
                     </a>
                 </li>
+                <?php /* Pengolahan nilai dinonaktifkan sementara
                 <li class="nav-item">
                     <a class="nav-link <?= navActive('weights', $currentX) ?>" href="weights">
                         <i class="fa-solid fa-sliders text-info"></i>
                         <span>Pengaturan Bobot STS</span>
                     </a>
                 </li>
+                */ ?>
                 <li class="nav-item">
                     <a class="nav-link <?= navActive('admins', $currentX) ?>" href="admins">
                         <i class="fa-solid fa-user-shield text-danger"></i>

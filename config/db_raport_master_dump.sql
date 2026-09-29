@@ -155,6 +155,7 @@ CREATE TABLE `tb_mapel_mapping` (
 
 LOCK TABLES `tb_mapel_mapping` WRITE;
 /*!40000 ALTER TABLE `tb_mapel_mapping` DISABLE KEYS */;
+INSERT INTO `tb_mapel_mapping` VALUES ('B','10','Pilihan',1),('B','11','Pilihan',1),('B','12','Pilihan',1),('BDKB','11','Umum',10),('BDKB','12','Umum',10),('BIG','10','Umum',4),('BIG','11','Umum',4),('BIG','12','Umum',4),('BIG Lanjut','11','Pilihan',6),('BIG Lanjut','12','Pilihan',6),('BIN','10','Umum',3),('BIN','11','Umum',3),('BIN','12','Umum',3),('E','10','Pilihan',6),('E','11','Pilihan',9),('E','12','Pilihan',9),('F','10','Pilihan',2),('F','11','Pilihan',2),('F','12','Pilihan',2),('G','10','Pilihan',5),('G','11','Pilihan',10),('G','12','Pilihan',10),('I','10','Pilihan',4),('I','11','Pilihan',4),('I','12','Pilihan',4),('IPA','10','Pilihan',9),('K','10','Pilihan',3),('K','11','Pilihan',3),('K','12','Pilihan',3),('MLBD','10','Umum',9),('MLBD','11','Umum',9),('MLBD','12','Umum',9),('MTL','11','Pilihan',5),('MTL','12','Pilihan',5),('MU','10','Umum',5),('MU','11','Umum',5),('MU','12','Umum',5),('P.Pan','10','Umum',2),('P.Pan','11','Umum',2),('P.Pan','12','Umum',2),('PAIDBP','10','Umum',1),('PAIDBP','11','Umum',1),('PAIDBP','12','Umum',1),('PAKADBP','10','Umum',1),('PAKADBP','11','Umum',1),('PAKADBP','12','Umum',1),('PAKDBP','10','Umum',1),('PAKDBP','11','Umum',1),('PAKDBP','12','Umum',1),('PDK','10','Pilihan',8),('PDK','11','Pilihan',11),('PDK','12','Pilihan',11),('PJODK','10','Umum',7),('PJODK','11','Umum',7),('PJODK','12','Umum',7),('S','10','Umum',6),('S','11','Umum',6),('S','12','Umum',6),('SB','10','Umum',8),('SB','11','Umum',8),('SB','12','Umum',8),('SDB','10','Umum',8),('SDB','11','Umum',8),('SDB','12','Umum',8),('SOS','10','Pilihan',7),('SOS','11','Pilihan',8),('SOS','12','Pilihan',8),('STL','11','Pilihan',7),('STL','12','Pilihan',7);
 /*!40000 ALTER TABLE `tb_mapel_mapping` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -197,6 +198,8 @@ CREATE TABLE `tb_nilai_sts` (
   `sumatif_1` decimal(5,2) DEFAULT NULL,
   `sumatif_2` decimal(5,2) DEFAULT NULL,
   `sumatif_3` decimal(5,2) DEFAULT NULL,
+  `sumatif_4` decimal(5,2) DEFAULT NULL,
+  `sumatif_5` decimal(5,2) DEFAULT NULL,
   `rata_sumatif` decimal(5,2) DEFAULT NULL,
   `nilai_sts` decimal(5,2) DEFAULT NULL,
   `nilai_akhir` decimal(5,2) DEFAULT NULL,
@@ -442,4 +445,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-29  5:31:32
+-- Dump completed on 2026-09-29  7:59:19

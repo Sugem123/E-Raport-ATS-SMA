@@ -58,6 +58,11 @@ $namaWali = $kelas['nama_walikelas'] ?? '-';
 $nipWali  = $kelas['id_guru_walikelas'] ?? '-';
 $kelasFormatted = str_replace('-', ' ', $kelas['nama_kelas']);
 $fase = ($kelas['tingkat'] === '10' || str_starts_with($kelas['nama_kelas'], 'X-')) ? 'E' : 'F';
+
+// Deteksi Semester Ganjil / Genap
+$semRaw = trim((string)($setting['semester'] ?? '1'));
+$semGanjilGenap = ($semRaw === '2' || stripos($semRaw, 'genap') !== false) ? 'GENAP' : 'GANJIL';
+$semGanjilGenapCap = ucfirst(strtolower($semGanjilGenap));
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -133,24 +138,49 @@ $fase = ($kelas['tingkat'] === '10' || str_starts_with($kelas['nama_kelas'], 'X-
             font-weight: bold;
             font-size: 15px;
             letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+        .section-title {
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 6px;
+            margin-top: 6px;
+        }
+        .table-raport-container {
+            position: relative;
             margin-bottom: 14px;
+        }
+        .raport-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 220px;
+            height: 220px;
+            object-fit: contain;
+            opacity: 0.12;
+            pointer-events: none;
+            z-index: 0;
         }
         .table-raport {
             width: 100%;
             border-collapse: collapse;
-            font-size: 12.5px;
-            margin-bottom: 14px;
+            font-size: 12px;
+            position: relative;
+            z-index: 1;
+            background: transparent !important;
         }
         .table-raport th,
         .table-raport td {
             border: 1px solid #000;
-            padding: 5px 6px;
+            padding: 4px 6px;
+            background: transparent !important;
         }
         .table-raport th {
             text-align: center;
             font-weight: bold;
             vertical-align: middle;
-            background-color: #ffffff;
         }
         .table-raport td.text-center {
             text-align: center;
@@ -159,11 +189,17 @@ $fase = ($kelas['tingkat'] === '10' || str_starts_with($kelas['nama_kelas'], 'X-
             text-align: left;
             padding-left: 8px;
         }
+        .table-group-header .group-header-cell {
+            font-weight: bold;
+            text-align: left;
+            padding-left: 8px;
+            background-color: transparent !important;
+            border: 1px solid #000;
+        }
         .table-ketidakhadiran {
-            width: 42%;
+            width: 48%;
             border-collapse: collapse;
             font-size: 12px;
-            margin-top: 10px;
             margin-bottom: 16px;
         }
         .table-ketidakhadiran th,
@@ -174,7 +210,7 @@ $fase = ($kelas['tingkat'] === '10' || str_starts_with($kelas['nama_kelas'], 'X-
         .table-ketidakhadiran th {
             text-align: center;
             font-weight: bold;
-            background-color: #fafafa;
+            background-color: transparent !important;
         }
         .signature-table {
             width: 100%;
@@ -269,6 +305,18 @@ foreach ($siswaList as $s) {
     $reportData = $studentModel->getReportSts($s['nis']);
     $student    = $reportData['student'];
     $grades     = $reportData['grades'];
+
+    // Pisahkan Kelompok Umum dan Kelompok Pilihan
+    $mapelUmum = [];
+    $mapelPilihan = [];
+    foreach ($grades as $g) {
+        $kat = strtolower(trim((string)$g['kategori']));
+        if ($kat === 'pilihan') {
+            $mapelPilihan[] = $g;
+        } else {
+            $mapelUmum[] = $g;
+        }
+    }
 ?>
 <div class="report-page">
     <div class="content-area">
@@ -311,78 +359,115 @@ foreach ($siswaList as $s) {
         <div class="meta-divider"></div>
 
         <!-- Judul Laporan -->
-        <div class="report-title">LAPORAN HASIL BELAJAR</div>
+        <div class="report-title">LAPORAN HASIL BELAJAR TENGAH SEMESTER <?= $semGanjilGenap ?></div>
 
-        <!-- Tabel Nilai -->
-        <table class="table-raport">
-            <thead>
-                <tr>
-                    <th style="width: 5%;">No</th>
-                    <th style="width: 37%;">Mata Pelajaran</th>
-                    <th style="width: 11%;">Nilai<br>Sumatif 1</th>
-                    <th style="width: 11%;">Nilai<br>Sumatif 2</th>
-                    <th style="width: 11%;">Nilai<br>Sumatif 3</th>
-                    <th style="width: 11%;">Nilai<br>ATS</th>
-                    <th style="width: 14%;">Nilai akhir</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                if (empty($grades)) {
-                    echo '<tr><td colspan="7" class="text-center py-4 text-muted">Belum ada data mata pelajaran untuk kelas ini.</td></tr>';
-                } else {
-                    $no = 1;
-                    foreach ($grades as $g) {
-                        $s1  = ($g['sumatif_1'] !== null && $g['sumatif_1'] !== '') ? (float)$g['sumatif_1'] : '';
-                        $s2  = ($g['sumatif_2'] !== null && $g['sumatif_2'] !== '') ? (float)$g['sumatif_2'] : '';
-                        $s3  = ($g['sumatif_3'] !== null && $g['sumatif_3'] !== '') ? (float)$g['sumatif_3'] : '';
-                        $ats = ($g['nilai_sts'] !== null && $g['nilai_sts'] !== '') ? (float)$g['nilai_sts'] : '';
-                        $na  = ($g['nilai_akhir'] !== null && $g['nilai_akhir'] !== '') ? (float)$g['nilai_akhir'] : '';
-                ?>
+        <!-- A. HASIL BELAJAR -->
+        <div class="section-title">A. HASIL BELAJAR</div>
+
+        <div class="table-raport-container">
+            <?php if (!empty($setting['logo_sekolah']) && file_exists(__DIR__ . '/' . $setting['logo_sekolah'])) { ?>
+                <img src="<?= htmlspecialchars($setting['logo_sekolah']) ?>" class="raport-watermark" alt="Watermark">
+            <?php } ?>
+            <table class="table-raport">
+                <thead>
                     <tr>
-                        <td class="text-center"><?= $no++ ?></td>
-                        <td class="mapel-name"><?= htmlspecialchars($g['nama_mapel']) ?></td>
-                        <td class="text-center"><?= $s1 ?></td>
-                        <td class="text-center"><?= $s2 ?></td>
-                        <td class="text-center"><?= $s3 ?></td>
-                        <td class="text-center"><?= $ats ?></td>
-                        <td class="text-center"><?= $na ?></td>
+                        <th rowspan="2" style="width: 5%;">No</th>
+                        <th rowspan="2" style="width: 41%;">Mata Pelajaran</th>
+                        <th colspan="4" style="width: 32%;">Sumatif</th>
+                        <th rowspan="2" style="width: 22%;">Sumatif Tengah<br>Semester <?= $semGanjilGenapCap ?></th>
                     </tr>
-                <?php
-                    }
-                }
-                ?>
-            </tbody>
-        </table>
+                    <tr>
+                        <th style="width: 8%;">01</th>
+                        <th style="width: 8%;">02</th>
+                        <th style="width: 8%;">03</th>
+                        <th style="width: 8%;">04</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (!empty($mapelUmum)) { ?>
+                        <tr class="table-group-header">
+                            <td colspan="7" class="group-header-cell">Kelompok Umum</td>
+                        </tr>
+                        <?php
+                        $noU = 1;
+                        foreach ($mapelUmum as $g) {
+                            $s1  = ($g['sumatif_1'] !== null && $g['sumatif_1'] !== '') ? (float)$g['sumatif_1'] : '';
+                            $s2  = ($g['sumatif_2'] !== null && $g['sumatif_2'] !== '') ? (float)$g['sumatif_2'] : '';
+                            $s3  = ($g['sumatif_3'] !== null && $g['sumatif_3'] !== '') ? (float)$g['sumatif_3'] : '';
+                            $s4  = (isset($g['sumatif_4']) && $g['sumatif_4'] !== null && $g['sumatif_4'] !== '') ? (float)$g['sumatif_4'] : '';
+                            $ats = ($g['nilai_sts'] !== null && $g['nilai_sts'] !== '') ? (float)$g['nilai_sts'] : '';
+                        ?>
+                        <tr>
+                            <td class="text-center"><?= $noU++ ?></td>
+                            <td class="mapel-name"><?= htmlspecialchars($g['nama_mapel']) ?></td>
+                            <td class="text-center"><?= $s1 ?></td>
+                            <td class="text-center"><?= $s2 ?></td>
+                            <td class="text-center"><?= $s3 ?></td>
+                            <td class="text-center"><?= $s4 ?></td>
+                            <td class="text-center"><?= $ats ?></td>
+                        </tr>
+                        <?php } ?>
+                    <?php } ?>
 
-        <!-- Keterangan Ketidakhadiran -->
+                    <?php if (!empty($mapelPilihan)) { ?>
+                        <tr class="table-group-header">
+                            <td colspan="7" class="group-header-cell">Kelompok Pilihan</td>
+                        </tr>
+                        <?php
+                        $noP = 1;
+                        foreach ($mapelPilihan as $g) {
+                            $s1  = ($g['sumatif_1'] !== null && $g['sumatif_1'] !== '') ? (float)$g['sumatif_1'] : '';
+                            $s2  = ($g['sumatif_2'] !== null && $g['sumatif_2'] !== '') ? (float)$g['sumatif_2'] : '';
+                            $s3  = ($g['sumatif_3'] !== null && $g['sumatif_3'] !== '') ? (float)$g['sumatif_3'] : '';
+                            $s4  = (isset($g['sumatif_4']) && $g['sumatif_4'] !== null && $g['sumatif_4'] !== '') ? (float)$g['sumatif_4'] : '';
+                            $ats = ($g['nilai_sts'] !== null && $g['nilai_sts'] !== '') ? (float)$g['nilai_sts'] : '';
+                        ?>
+                        <tr>
+                            <td class="text-center"><?= $noP++ ?></td>
+                            <td class="mapel-name"><?= htmlspecialchars($g['nama_mapel']) ?></td>
+                            <td class="text-center"><?= $s1 ?></td>
+                            <td class="text-center"><?= $s2 ?></td>
+                            <td class="text-center"><?= $s3 ?></td>
+                            <td class="text-center"><?= $s4 ?></td>
+                            <td class="text-center"><?= $ats ?></td>
+                        </tr>
+                        <?php } ?>
+                    <?php } ?>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- B. KETIDAK HADIRAN -->
+        <div class="section-title">B. KETIDAK HADIRAN</div>
         <?php
         $presensi = $reportData['presensi'] ?? ['sakit' => 0, 'izin' => 0, 'alpa' => 0];
-        $sakitTxt = ((int)($presensi['sakit'] ?? 0) > 0) ? (int)$presensi['sakit'] . ' Hari' : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hari';
-        $izinTxt  = ((int)($presensi['izin'] ?? 0) > 0) ? (int)$presensi['izin'] . ' Hari' : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hari';
-        $alpaTxt  = ((int)($presensi['alpa'] ?? 0) > 0) ? (int)$presensi['alpa'] . ' Hari' : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hari';
+        $sakitVal = (int)($presensi['sakit'] ?? 0);
+        $izinVal  = (int)($presensi['izin'] ?? 0);
+        $alpaVal  = (int)($presensi['alpa'] ?? 0);
         ?>
         <table class="table-ketidakhadiran">
             <thead>
                 <tr>
-                    <th colspan="3">Ketidakhadiran</th>
+                    <th style="width: 10%;">No</th>
+                    <th style="width: 50%;">Ketidak Hadiran</th>
+                    <th style="width: 40%;">Jumlah</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td style="width: 52%;">Sakit</td>
-                    <td style="width: 6%; text-align: center;">:</td>
-                    <td style="width: 42%;"><?= $sakitTxt ?></td>
+                    <td class="text-center">1</td>
+                    <td class="ps-2">Sakit</td>
+                    <td class="text-center"><?= $sakitVal ?> Hari</td>
                 </tr>
                 <tr>
-                    <td>Izin</td>
-                    <td style="text-align: center;">:</td>
-                    <td><?= $izinTxt ?></td>
+                    <td class="text-center">2</td>
+                    <td class="ps-2">Izin</td>
+                    <td class="text-center"><?= $izinVal ?> Hari</td>
                 </tr>
                 <tr>
-                    <td>Tanpa Keterangan</td>
-                    <td style="text-align: center;">:</td>
-                    <td><?= $alpaTxt ?></td>
+                    <td class="text-center">3</td>
+                    <td class="ps-2">Tanpa Keterangan</td>
+                    <td class="text-center"><?= $alpaVal ?> Hari</td>
                 </tr>
             </tbody>
         </table>

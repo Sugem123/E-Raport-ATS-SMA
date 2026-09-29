@@ -243,8 +243,8 @@ class Student
                        COALESCE(mp.kategori, 'Umum') AS kategori,
                        COALESCE(mp.urutan, 999) AS urutan,
                        g.nama_guru,
-                       n.sumatif_1, n.sumatif_2, n.sumatif_3, n.rata_sumatif,
-                       n.nilai_sts, n.nilai_akhir, n.status_kelulusan
+                       n.sumatif_1, n.sumatif_2, n.sumatif_3, n.sumatif_4,
+                       n.nilai_sts
                 FROM tb_pengampu p
                 INNER JOIN tb_mapel_referensi m ON p.id_mapel = m.id_mapel
                 INNER JOIN tb_guru g ON p.id_guru = g.id_guru

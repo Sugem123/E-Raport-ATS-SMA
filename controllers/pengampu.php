@@ -73,6 +73,20 @@ switch ($action) {
             }
         }
         break;
+
+    case 'reset':
+        $result = $model->resetAll();
+        $backPage = 1;
+        break;
+
+    case 'upload_excel':
+        if (isset($_FILES['excel_file']) && $_FILES['excel_file']['error'] === UPLOAD_ERR_OK) {
+            $result = $model->importExcel($_FILES['excel_file']['tmp_name'], $_FILES['excel_file']['name']);
+        } else {
+            $result = ['success' => false, 'message' => 'Gagal mengupload file Excel penugasan.'];
+        }
+        $backPage = 1;
+        break;
 }
 
 $back = '../assignments?page=' . $backPage . '&per_page=' . $backPerPage;

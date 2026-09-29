@@ -84,11 +84,11 @@ $bobot = $bobotModel->get();
                 </div>
             <?php } else { ?>
 
-                <!-- Info Bobot Aktif -->
+                <!-- Info Header Nilai -->
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold mb-0 text-dark">Daftar Nilai Siswa (<?= count($students) ?> Siswa)</h6>
+                    <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-list-ol me-1 text-primary"></i> Daftar Nilai Siswa (<?= count($students) ?> Siswa)</h6>
                     <small class="text-muted">
-                        Bobot: <strong>Sumatif <?= (float)$bobot['bobot_sumatif'] ?>%</strong> + <strong>STS <?= (float)$bobot['bobot_sts'] ?>%</strong> | KKM: <strong><?= (float)$bobot['kkm'] ?></strong>
+                        Mata Pelajaran: <strong><?= htmlspecialchars($currentAssignment['nama_mapel']) ?></strong> &bull; Kelas: <strong><?= htmlspecialchars($currentAssignment['nama_kelas']) ?></strong>
                     </small>
                 </div>
 
@@ -98,26 +98,22 @@ $bobot = $bobotModel->get();
                         <thead class="table-light">
                             <tr class="text-center">
                                 <th style="width: 5%">No</th>
-                                <th>NIS</th>
+                                <th style="width: 12%">NIS</th>
                                 <th class="text-start">Nama Siswa</th>
-                                <th>Sumatif 1</th>
-                                <th>Sumatif 2</th>
-                                <th>Sumatif 3</th>
-                                <th>Rata-rata</th>
-                                <th>Nilai STS</th>
-                                <th>Nilai Akhir</th>
-                                <th>Status</th>
-                                <th style="width: 10%">Aksi</th>
+                                <th style="width: 10%">Sumatif 1</th>
+                                <th style="width: 10%">Sumatif 2</th>
+                                <th style="width: 10%">Sumatif 3</th>
+                                <th style="width: 10%">Sumatif 4</th>
+                                <th style="width: 12%">Nilai ATS</th>
+                                <th style="width: 8%">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (empty($students)) { ?>
-                                <tr><td colspan="11" class="text-center py-4 text-muted">Belum ada siswa di kelas ini.</td></tr>
+                                <tr><td colspan="9" class="text-center py-4 text-muted">Belum ada siswa di kelas ini.</td></tr>
                             <?php } else {
                                 $no = 1;
                                 foreach ($students as $s) {
-                                    $hasGrade = ($s['nilai_akhir'] !== null);
-                                    $isPass = ($s['status_kelulusan'] === 'Tercapai');
                             ?>
                                 <tr class="text-center">
                                     <td><?= $no++ ?></td>
@@ -126,18 +122,8 @@ $bobot = $bobotModel->get();
                                     <td><?= $s['sumatif_1'] !== null ? (float)$s['sumatif_1'] : '-' ?></td>
                                     <td><?= $s['sumatif_2'] !== null ? (float)$s['sumatif_2'] : '-' ?></td>
                                     <td><?= $s['sumatif_3'] !== null ? (float)$s['sumatif_3'] : '-' ?></td>
-                                    <td class="fw-semibold text-secondary"><?= $s['rata_sumatif'] !== null ? (float)$s['rata_sumatif'] : '-' ?></td>
-                                    <td class="fw-semibold"><?= $s['nilai_sts'] !== null ? (float)$s['nilai_sts'] : '-' ?></td>
-                                    <td class="fw-bold fs-6 text-primary"><?= $s['nilai_akhir'] !== null ? (float)$s['nilai_akhir'] : '-' ?></td>
-                                    <td>
-                                        <?php if ($hasGrade) { ?>
-                                            <span class="badge <?= $isPass ? 'bg-success' : 'bg-danger' ?>">
-                                                <?= htmlspecialchars($s['status_kelulusan']) ?>
-                                            </span>
-                                        <?php } else { ?>
-                                            <span class="badge bg-light text-muted border">Belum dinilai</span>
-                                        <?php } ?>
-                                    </td>
+                                    <td><?= (isset($s['sumatif_4']) && $s['sumatif_4'] !== null) ? (float)$s['sumatif_4'] : '-' ?></td>
+                                    <td class="fw-bold text-primary fs-6"><?= $s['nilai_sts'] !== null ? (float)$s['nilai_sts'] : '-' ?></td>
                                     <td>
                                         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#ModalInputNilai<?= $s['nis'] ?>" title="Input / Edit Nilai">
                                             <i class="fa fa-pen"></i>
@@ -154,45 +140,33 @@ $bobot = $bobotModel->get();
                                                 <input type="hidden" name="id_pengampu" value="<?= $selectedPengampuId ?>">
                                                 <input type="hidden" name="nis" value="<?= $s['nis'] ?>">
                                                 <div class="modal-header">
-                                                    <h5 class="modal-title">Input Nilai STS: <?= htmlspecialchars($s['nama']) ?></h5>
+                                                    <h5 class="modal-title">Input Nilai: <?= htmlspecialchars($s['nama']) ?></h5>
                                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                                 </div>
                                                 <div class="modal-body">
                                                     <div class="row mb-3">
                                                         <div class="col-6">
-                                                            <label class="form-label small fw-semibold">Nilai Sumatif 1</label>
-                                                            <input type="number" step="0.01" min="0" max="100" class="form-control s1-input" id="s1_<?= $s['nis'] ?>" name="sumatif_1" value="<?= $s['sumatif_1'] !== null ? (float)$s['sumatif_1'] : '' ?>" oninput="calcLive('<?= $s['nis'] ?>')" required>
+                                                            <label class="form-label small fw-semibold">Nilai Sumatif 1 (01)</label>
+                                                            <input type="number" step="0.01" min="0" max="100" class="form-control" name="sumatif_1" value="<?= $s['sumatif_1'] !== null ? (float)$s['sumatif_1'] : '' ?>" placeholder="0 - 100">
                                                         </div>
                                                         <div class="col-6">
-                                                            <label class="form-label small fw-semibold">Nilai Sumatif 2</label>
-                                                            <input type="number" step="0.01" min="0" max="100" class="form-control s2-input" id="s2_<?= $s['nis'] ?>" name="sumatif_2" value="<?= $s['sumatif_2'] !== null ? (float)$s['sumatif_2'] : '' ?>" oninput="calcLive('<?= $s['nis'] ?>')" required>
+                                                            <label class="form-label small fw-semibold">Nilai Sumatif 2 (02)</label>
+                                                            <input type="number" step="0.01" min="0" max="100" class="form-control" name="sumatif_2" value="<?= $s['sumatif_2'] !== null ? (float)$s['sumatif_2'] : '' ?>" placeholder="0 - 100">
                                                         </div>
                                                     </div>
                                                     <div class="row mb-3">
                                                         <div class="col-6">
-                                                            <label class="form-label small fw-semibold">Nilai Sumatif 3</label>
-                                                            <input type="number" step="0.01" min="0" max="100" class="form-control s3-input" id="s3_<?= $s['nis'] ?>" name="sumatif_3" value="<?= $s['sumatif_3'] !== null ? (float)$s['sumatif_3'] : '' ?>" oninput="calcLive('<?= $s['nis'] ?>')" required>
+                                                            <label class="form-label small fw-semibold">Nilai Sumatif 3 (03)</label>
+                                                            <input type="number" step="0.01" min="0" max="100" class="form-control" name="sumatif_3" value="<?= $s['sumatif_3'] !== null ? (float)$s['sumatif_3'] : '' ?>" placeholder="0 - 100">
                                                         </div>
                                                         <div class="col-6">
-                                                            <label class="form-label small fw-semibold">Nilai Asesmen STS</label>
-                                                            <input type="number" step="0.01" min="0" max="100" class="form-control sts-input" id="sts_<?= $s['nis'] ?>" name="nilai_sts" value="<?= $s['nilai_sts'] !== null ? (float)$s['nilai_sts'] : '' ?>" oninput="calcLive('<?= $s['nis'] ?>')" required>
+                                                            <label class="form-label small fw-semibold">Nilai Sumatif 4 (04)</label>
+                                                            <input type="number" step="0.01" min="0" max="100" class="form-control" name="sumatif_4" value="<?= (isset($s['sumatif_4']) && $s['sumatif_4'] !== null) ? (float)$s['sumatif_4'] : '' ?>" placeholder="0 - 100">
                                                         </div>
                                                     </div>
-                                                    <div class="p-3 bg-light rounded border">
-                                                        <div class="d-flex justify-content-between mb-1">
-                                                            <span class="small text-muted">Rata-rata Sumatif:</span>
-                                                            <span class="fw-semibold" id="rata_<?= $s['nis'] ?>"><?= $s['rata_sumatif'] !== null ? (float)$s['rata_sumatif'] : '-' ?></span>
-                                                        </div>
-                                                        <div class="d-flex justify-content-between mb-1">
-                                                            <span class="small text-muted">Nilai Akhir STS (Kalkulasi):</span>
-                                                            <span class="fw-bold text-primary fs-6" id="na_<?= $s['nis'] ?>"><?= $s['nilai_akhir'] !== null ? (float)$s['nilai_akhir'] : '-' ?></span>
-                                                        </div>
-                                                        <div class="d-flex justify-content-between">
-                                                            <span class="small text-muted">Status Capaian:</span>
-                                                            <span class="badge <?= $isPass ? 'bg-success' : 'bg-danger' ?>" id="status_<?= $s['nis'] ?>">
-                                                                <?= $s['status_kelulusan'] ?? 'Belum Lengkap' ?>
-                                                            </span>
-                                                        </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label small fw-semibold text-primary">Nilai Asesmen STS (Nilai ATS)</label>
+                                                        <input type="number" step="0.01" min="0" max="100" class="form-control form-control-lg fw-bold" name="nilai_sts" value="<?= $s['nilai_sts'] !== null ? (float)$s['nilai_sts'] : '' ?>" placeholder="0 - 100">
                                                     </div>
                                                 </div>
                                                 <div class="modal-footer">
