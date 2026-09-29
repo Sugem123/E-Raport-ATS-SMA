@@ -40,27 +40,24 @@ while ($row = mysqli_fetch_assoc($allStudentsQuery)) {
     ];
 }
 
-// Ambil seluruh mata pelajaran referensi (28 mapel) beserta kategori mapping per jenjang (10, 11, 12)
+// Ambil daftar mata pelajaran terpetakan sesuai hasil mapping per jenjang (10, 11, 12)
+$qMapelMapped = mysqli_query($conn, "
+    SELECT m.jenjang, m.id_mapel, r.nama_mapel, m.kategori, m.urutan
+    FROM tb_mapel_mapping m
+    INNER JOIN tb_mapel_referensi r ON m.id_mapel = r.id_mapel
+    ORDER BY m.jenjang ASC,
+             CASE WHEN m.kategori = 'Umum' THEN 1 ELSE 2 END ASC,
+             m.urutan ASC,
+             r.nama_mapel ASC
+");
 $mapelByJenjang = ['10' => [], '11' => [], '12' => []];
-foreach (['10', '11', '12'] as $j) {
-    $qMapelMapped = mysqli_query($conn, "
-        SELECT r.id_mapel, r.nama_mapel,
-               COALESCE(m.kategori, 'Pilihan') AS kategori,
-               COALESCE(m.urutan, 999) AS urutan
-        FROM tb_mapel_referensi r
-        LEFT JOIN tb_mapel_mapping m ON (r.id_mapel = m.id_mapel AND m.jenjang = '$j')
-        ORDER BY CASE WHEN COALESCE(m.kategori, 'Pilihan') = 'Umum' THEN 1 ELSE 2 END ASC,
-                 COALESCE(m.urutan, 999) ASC,
-                 r.nama_mapel ASC
-    ");
-    while ($row = mysqli_fetch_assoc($qMapelMapped)) {
-        $mapelByJenjang[$j][] = [
-            'id_mapel'   => $row['id_mapel'],
-            'nama_mapel' => $row['nama_mapel'],
-            'kategori'   => $row['kategori'],
-            'urutan'     => (int)$row['urutan']
-        ];
-    }
+while ($row = mysqli_fetch_assoc($qMapelMapped)) {
+    $mapelByJenjang[$row['jenjang']][] = [
+        'id_mapel'   => $row['id_mapel'],
+        'nama_mapel' => $row['nama_mapel'],
+        'kategori'   => $row['kategori'],
+        'urutan'     => (int)$row['urutan']
+    ];
 }
 
 // Ambil penugasan mengajar yang sedang aktif di tb_pengampu
@@ -547,10 +544,26 @@ while ($row = mysqli_fetch_assoc($qPengampu)) {
                         </div>
                     </div>
 
-                    <!-- Tabel Daftar Mapel & Dropdown Guru -->
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle border mb-0" id="tablePembelajaranModal">
-                            <thead class="table-light">
+                    <!-- Tabel Daftar Mapel & Dropdown Guru dengan Scroll Vertikal & Sticky Header -->
+                    <style>
+                        #tablePembelajaranScrollContainer::-webkit-scrollbar {
+                            width: 8px;
+                        }
+                        #tablePembelajaranScrollContainer::-webkit-scrollbar-track {
+                            background: #f1f5f9;
+                            border-radius: 4px;
+                        }
+                        #tablePembelajaranScrollContainer::-webkit-scrollbar-thumb {
+                            background: #94a3b8;
+                            border-radius: 4px;
+                        }
+                        #tablePembelajaranScrollContainer::-webkit-scrollbar-thumb:hover {
+                            background: #64748b;
+                        }
+                    </style>
+                    <div class="table-responsive border rounded shadow-sm" id="tablePembelajaranScrollContainer" style="max-height: 55vh; overflow-y: auto; position: relative;">
+                        <table class="table table-hover align-middle mb-0" id="tablePembelajaranModal">
+                            <thead class="table-light sticky-top" style="z-index: 5; background-color: #f8fafc; border-bottom: 2px solid #cbd5e1;">
                                 <tr class="text-center">
                                     <th style="width: 5%">No</th>
                                     <th style="width: 12%">Kode</th>
