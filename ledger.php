@@ -61,7 +61,7 @@ if ($selectedKelasId) {
                     </span>
                     <h4 class="fw-bold mb-1">Ledger Nilai Hasil Belajar Tengah Semester</h4>
                     <p class="mb-0 opacity-90 small">
-                        Rekapitulasi nilai seluruh peserta didik per rombel kelas &bull; Tersedia Opsi A (Ringkas ATS) &amp; Opsi B (Rincian Sumatif 1&ndash;4 &amp; ATS).
+                        Rekapitulasi nilai seluruh peserta didik per rombel kelas &bull; Tersedia format Ringkas (Nilai ATS) &amp; Lengkap (Sumatif 1&ndash;4 &amp; ATS).
                     </p>
                 </div>
                 <?php if ($ledgerData) { ?>
@@ -140,16 +140,16 @@ if ($selectedKelasId) {
                     <strong><?= count($mapelList) ?> Mapel</strong> (<?= count($mapelUmum) ?> Umum, <?= count($mapelPilihan) ?> Pilihan)
                 </span>
             </div>
-            <!-- Toggle Tabs Opsi A & B -->
+            <!-- Toggle Tabs Ringkas & Lengkap -->
             <ul class="nav nav-pills" id="pillsLedger" role="tablist">
                 <li class="nav-item">
                     <button class="nav-link active btn-sm fw-bold" id="tab-ringkas-btn" data-bs-toggle="pill" data-bs-target="#tab-ringkas" type="button" role="tab">
-                        <i class="fa-solid fa-table me-1"></i> Opsi A: Ringkas (Nilai ATS)
+                        <i class="fa-solid fa-table me-1"></i> Ringkas
                     </button>
                 </li>
                 <li class="nav-item">
                     <button class="nav-link btn-sm fw-bold ms-2" id="tab-lengkap-btn" data-bs-toggle="pill" data-bs-target="#tab-lengkap" type="button" role="tab">
-                        <i class="fa-solid fa-table-cells me-1"></i> Opsi B: Lengkap (Sumatif 1&ndash;4 &amp; ATS)
+                        <i class="fa-solid fa-table-cells me-1"></i> Lengkap
                     </button>
                 </li>
             </ul>
