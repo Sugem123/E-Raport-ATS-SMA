@@ -807,11 +807,12 @@ class SimpleXlsx
 
         // Summary Row: Rata-rata Kelas
         $subjectSummary = $stats['subject_summary'] ?? [];
+        $rowRataRingkas = $rowIdx;
         $sheetData .= '<row r="' . $rowIdx . '" ht="21">';
-        $sheetData .= '<c r="A' . $rowIdx . '" s="9"/>';
-        $sheetData .= '<c r="B' . $rowIdx . '" s="9"/>';
-        $sheetData .= '<c r="C' . $rowIdx . '" s="9"/>';
-        $sheetData .= '<c r="D' . $rowIdx . '" s="10" t="inlineStr"><is><t>Rata-rata Kelas</t></is></c>';
+        $sheetData .= '<c r="A' . $rowIdx . '" s="10" t="inlineStr"><is><t>Rata-rata Kelas</t></is></c>';
+        $sheetData .= '<c r="B' . $rowIdx . '" s="10"/>';
+        $sheetData .= '<c r="C' . $rowIdx . '" s="10"/>';
+        $sheetData .= '<c r="D' . $rowIdx . '" s="10"/>';
         $cIdx = 4;
         foreach ($mapelList as $m) {
             $idP = (int)$m['id_pengampu'];
@@ -873,6 +874,9 @@ class SimpleXlsx
         }
         $sheet .= '</cols>
   ' . $sheetData . '
+  <mergeCells count="1">
+    <mergeCell ref="A' . $rowRataRingkas . ':D' . $rowRataRingkas . '"/>
+  </mergeCells>
 </worksheet>';
         $zip->addFromString('xl/worksheets/sheet1.xml', $sheet);
         $zip->close();
@@ -1029,31 +1033,50 @@ class SimpleXlsx
         $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="3" t="inlineStr"><is><t>NISN</t></is></c>';
         $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="3" t="inlineStr"><is><t>Nama Siswa</t></is></c>';
 
+        $mergeList = [
+            'A6:A7',
+            'B6:B7',
+            'C6:C7',
+            'D6:D7'
+        ];
+
         foreach ($mapelList as $m) {
             $isUmum = (strtolower(trim((string)$m['kategori'])) === 'umum');
             $styleHeader = $isUmum ? '3' : '4';
             $safeMName = htmlspecialchars((string)$m['nama_mapel'], ENT_QUOTES | ENT_XML1, 'UTF-8');
+            $startCol = $cIdx;
             $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="' . $styleHeader . '" t="inlineStr"><is><t>' . $safeMName . '</t></is></c>';
             $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="' . $styleHeader . '"/>';
             $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="' . $styleHeader . '"/>';
             $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="' . $styleHeader . '"/>';
             $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="' . $styleHeader . '"/>';
+            $endCol = $cIdx - 1;
+            $mergeList[] = self::colLetter($startCol) . '6:' . self::colLetter($endCol) . '6';
         }
 
+        $startKet = $cIdx;
         $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5" t="inlineStr"><is><t>Ketidakhadiran</t></is></c>';
         $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5"/>';
         $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5"/>';
-        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5" t="inlineStr"><is><t>Total ATS</t></is></c>';
-        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5" t="inlineStr"><is><t>Rata ATS</t></is></c>';
+        $endKet = $cIdx - 1;
+        $mergeList[] = self::colLetter($startKet) . '6:' . self::colLetter($endKet) . '6';
+
+        $colTot = self::colLetter($cIdx++);
+        $sheetData .= '<c r="' . $colTot . '6" s="5" t="inlineStr"><is><t>Total ATS</t></is></c>';
+        $mergeList[] = $colTot . '6:' . $colTot . '7';
+
+        $colRata = self::colLetter($cIdx++);
+        $sheetData .= '<c r="' . $colRata . '6" s="5" t="inlineStr"><is><t>Rata ATS</t></is></c>';
+        $mergeList[] = $colRata . '6:' . $colRata . '7';
         $sheetData .= '</row>';
 
         // Row 7: Sub-headers (01, 02, 03, 04, ATS for each mapel)
         $sheetData .= '<row r="7" ht="22">';
-        $cIdx = 0;
-        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="3"/>';
-        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="3"/>';
-        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="3"/>';
-        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="3"/>';
+        $sheetData .= '<c r="A7" s="3"/>';
+        $sheetData .= '<c r="B7" s="3"/>';
+        $sheetData .= '<c r="C7" s="3"/>';
+        $sheetData .= '<c r="D7" s="3"/>';
+        $cIdx = 4;
 
         foreach ($mapelList as $m) {
             $isUmum = (strtolower(trim((string)$m['kategori'])) === 'umum');
@@ -1068,8 +1091,8 @@ class SimpleXlsx
         $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="5" t="inlineStr"><is><t>S</t></is></c>';
         $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="5" t="inlineStr"><is><t>I</t></is></c>';
         $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="5" t="inlineStr"><is><t>A</t></is></c>';
-        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="5"/>';
-        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="5"/>';
+        $sheetData .= '<c r="' . $colTot . '7" s="5"/>';
+        $sheetData .= '<c r="' . $colRata . '7" s="5"/>';
         $sheetData .= '</row>';
 
         // Rows 8+: Data Siswa
@@ -1113,11 +1136,13 @@ class SimpleXlsx
 
         // Summary Row: Rata-rata Kelas
         $subjectSummary = $stats['subject_summary'] ?? [];
+        $rowRataLengkap = $rowIdx;
         $sheetData .= '<row r="' . $rowIdx . '" ht="21">';
-        $sheetData .= '<c r="A' . $rowIdx . '" s="9"/>';
-        $sheetData .= '<c r="B' . $rowIdx . '" s="9"/>';
-        $sheetData .= '<c r="C' . $rowIdx . '" s="9"/>';
-        $sheetData .= '<c r="D' . $rowIdx . '" s="10" t="inlineStr"><is><t>Rata-rata Kelas</t></is></c>';
+        $sheetData .= '<c r="A' . $rowIdx . '" s="10" t="inlineStr"><is><t>Rata-rata Kelas</t></is></c>';
+        $sheetData .= '<c r="B' . $rowIdx . '" s="10"/>';
+        $sheetData .= '<c r="C' . $rowIdx . '" s="10"/>';
+        $sheetData .= '<c r="D' . $rowIdx . '" s="10"/>';
+        $mergeList[] = 'A' . $rowRataLengkap . ':D' . $rowRataLengkap;
         $cIdx = 4;
         foreach ($mapelList as $m) {
             $idP = (int)$m['id_pengampu'];
@@ -1165,6 +1190,15 @@ class SimpleXlsx
 
         $sheetData .= '</sheetData>';
 
+        $mergeXml = '';
+        if (!empty($mergeList)) {
+            $mergeXml = '<mergeCells count="' . count($mergeList) . '">';
+            foreach ($mergeList as $mRef) {
+                $mergeXml .= '<mergeCell ref="' . $mRef . '"/>';
+            }
+            $mergeXml .= '</mergeCells>';
+        }
+
         $totalCols = 4 + (count($mapelList) * 5) + 5;
         $sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
@@ -1183,6 +1217,7 @@ class SimpleXlsx
         }
         $sheet .= '</cols>
   ' . $sheetData . '
+  ' . $mergeXml . '
 </worksheet>';
         $zip->addFromString('xl/worksheets/sheet1.xml', $sheet);
         $zip->close();
