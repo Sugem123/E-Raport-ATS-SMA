@@ -67,6 +67,12 @@ function navActive(string $target, string $current): string {
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link <?= navActive('ledger', $currentX) ?>" href="ledger">
+                        <i class="fa-solid fa-table text-warning"></i>
+                        <span>Ledger Nilai STS</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link <?= navActive('attendance', $currentX) ?>" href="attendance">
                         <i class="fa-solid fa-clipboard-user text-warning"></i>
                         <span>Ketidakhadiran Siswa</span>
@@ -136,6 +142,12 @@ function navActive(string $target, string $current): string {
                     <a class="nav-link <?= navActive('homeroom', $currentX) ?>" href="homeroom">
                         <i class="fa-solid fa-users-line text-success"></i>
                         <span>Perwalian & Rapor</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= navActive('ledger', $currentX) ?>" href="ledger">
+                        <i class="fa-solid fa-table text-warning"></i>
+                        <span>Ledger Nilai Kelas</span>
                     </a>
                 </li>
                 <li class="nav-item">

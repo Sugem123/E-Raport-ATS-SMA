@@ -176,6 +176,15 @@ switch ($x) {
         include "main.php";
         break;
 
+    case 'ledger':
+        if (in_array($_SESSION["role"] ?? '', ['admin', 'walikelas'])) {
+            $page = "ledger.php";
+        } else {
+            $page = "home.php";
+        }
+        include "main.php";
+        break;
+
     case 'attendance':
         if (in_array($_SESSION["role"] ?? '', ['admin', 'walikelas', 'guru'])) {
             $page = "attendance.php";

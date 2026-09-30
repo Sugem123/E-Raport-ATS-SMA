@@ -615,6 +615,589 @@ class SimpleXlsx
         exit;
     }
 
+    /**
+     * Download Excel Ledger Nilai STS - Opsi A (Ringkas: Nilai ATS saja per mapel)
+     */
+    public static function downloadLedgerRingkas(
+        string $filename,
+        array $info,
+        array $mapelList,
+        array $siswaList,
+        array $grades,
+        array $stats
+    ): void {
+        $tempFile = tempnam(sys_get_temp_dir(), 'xlsx_led_r_');
+        $zip = new ZipArchive();
+        $zip->open($tempFile, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        // [Content_Types].xml
+        $contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>';
+        $zip->addFromString('[Content_Types].xml', $contentTypes);
+
+        // _rels/.rels
+        $rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>';
+        $zip->addFromString('_rels/.rels', $rels);
+
+        // xl/_rels/workbook.xml.rels
+        $wbRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>';
+        $zip->addFromString('xl/_rels/workbook.xml.rels', $wbRels);
+
+        // xl/workbook.xml
+        $workbook = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>
+    <sheet name="Ledger Ringkas" sheetId="1" r:id="rId1"/>
+  </sheets>
+</workbook>';
+        $zip->addFromString('xl/workbook.xml', $workbook);
+
+        // xl/styles.xml
+        $styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts count="4">
+    <font><sz val="10"/><name val="Calibri"/></font>
+    <font><b/><sz val="10"/><name val="Calibri"/></font>
+    <font><b/><sz val="13"/><name val="Calibri"/><color rgb="FF1E3A8A"/></font>
+    <font><i/><sz val="9"/><name val="Calibri"/><color rgb="FF64748B"/></font>
+  </fonts>
+  <fills count="6">
+    <fill><patternFill patternType="none"/></fill>
+    <fill><patternFill patternType="gray125"/></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFD9E1F2"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFE2EFDA"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/></patternFill></fill>
+  </fills>
+  <borders count="2">
+    <border><left/><right/><top/><bottom/><diagonal/></border>
+    <border>
+      <left style="thin"><color auto="1"/></left>
+      <right style="thin"><color auto="1"/></right>
+      <top style="thin"><color auto="1"/></top>
+      <bottom style="thin"><color auto="1"/></bottom>
+      <diagonal/>
+    </border>
+  </borders>
+  <cellStyleXfs count="1">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
+  </cellStyleXfs>
+  <cellXfs count="11">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+    <xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+    <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center" wrapText="1"/>
+    </xf>
+    <xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center" wrapText="1"/>
+    </xf>
+    <xf numFmtId="0" fontId="1" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center" wrapText="1"/>
+    </xf>
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
+    </xf>
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="left" vertical="center"/>
+    </xf>
+    <xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
+    </xf>
+    <xf numFmtId="0" fontId="1" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
+    </xf>
+    <xf numFmtId="0" fontId="1" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="left" vertical="center"/>
+    </xf>
+  </cellXfs>
+  <cellStyles count="1">
+    <cellStyle name="Normal" xfId="0" builtinId="0"/>
+  </cellStyles>
+</styleSheet>';
+        $zip->addFromString('xl/styles.xml', $styles);
+
+        // xl/worksheets/sheet1.xml
+        $sheetData = '<sheetData>';
+
+        // Row 1: Judul
+        $sheetData .= '<row r="1" ht="25"><c r="A1" s="1" t="inlineStr"><is><t>LEGER NILAI ASESMEN TENGAH SEMESTER (RINGKAS)</t></is></c></row>';
+
+        // Row 2-4: Kop
+        $safeSekolah = htmlspecialchars((string)($info['nama_sekolah'] ?? 'SMA NEGERI 1 PRAMBON NGANJUK'), ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $safeKelas   = htmlspecialchars((string)($info['nama_kelas'] ?? '-'), ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $safeWali    = htmlspecialchars((string)($info['nama_walikelas'] ?? '-'), ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $safeSem     = htmlspecialchars((string)($info['semester'] ?? '1'), ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $safeTa      = htmlspecialchars((string)($info['tahun_ajaran'] ?? '2026/2027'), ENT_QUOTES | ENT_XML1, 'UTF-8');
+
+        $sheetData .= '<row r="2"><c r="A2" s="2" t="inlineStr"><is><t>Sekolah</t></is></c><c r="B2" t="inlineStr"><is><t>: ' . $safeSekolah . '</t></is></c></row>';
+        $sheetData .= '<row r="3"><c r="A3" s="2" t="inlineStr"><is><t>Kelas / Fase</t></is></c><c r="B3" t="inlineStr"><is><t>: Kelas ' . $safeKelas . ' (Tingkat ' . ($info['tingkat'] ?? '-') . ')</t></is></c><c r="E3" s="2" t="inlineStr"><is><t>Semester / TA</t></is></c><c r="F3" t="inlineStr"><is><t>: Semester ' . $safeSem . ' / ' . $safeTa . '</t></is></c></row>';
+        $sheetData .= '<row r="4"><c r="A4" s="2" t="inlineStr"><is><t>Wali Kelas</t></is></c><c r="B4" t="inlineStr"><is><t>: ' . $safeWali . '</t></is></c></row>';
+        $sheetData .= '<row r="5"/>';
+
+        // Row 6: Header Tabel (No, NIS, NISN, Nama, Mapel..., Total, Rata, Sakit, Izin, Alpa)
+        $sheetData .= '<row r="6" ht="28">';
+        $cIdx = 0;
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="3" t="inlineStr"><is><t>No</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="3" t="inlineStr"><is><t>NIS</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="3" t="inlineStr"><is><t>NISN</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="3" t="inlineStr"><is><t>Nama Siswa</t></is></c>';
+
+        foreach ($mapelList as $m) {
+            $isUmum = (strtolower(trim((string)$m['kategori'])) === 'umum');
+            $styleHeader = $isUmum ? '3' : '4'; // 3=blue, 4=green
+            $safeMName = htmlspecialchars((string)$m['nama_mapel'], ENT_QUOTES | ENT_XML1, 'UTF-8');
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="' . $styleHeader . '" t="inlineStr"><is><t>' . $safeMName . '</t></is></c>';
+        }
+
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5" t="inlineStr"><is><t>Total Nilai</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5" t="inlineStr"><is><t>Rata-rata</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="3" t="inlineStr"><is><t>S</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="3" t="inlineStr"><is><t>I</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="3" t="inlineStr"><is><t>A</t></is></c>';
+        $sheetData .= '</row>';
+
+        // Rows 7+: Data Siswa
+        $rowIdx = 7;
+        $studentStats = $stats['student_stats'] ?? [];
+        foreach ($siswaList as $idx => $s) {
+            $nis = $s['nis'];
+            $st = $studentStats[$nis] ?? ['total_ats' => 0, 'avg_ats' => 0];
+
+            $sheetData .= '<row r="' . $rowIdx . '" ht="20">';
+            $cIdx = 0;
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"><v>' . ($idx + 1) . '</v></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6" t="inlineStr"><is><t>' . htmlspecialchars((string)$s['nis'], ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6" t="inlineStr"><is><t>' . htmlspecialchars((string)($s['nisn'] ?? '-'), ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="7" t="inlineStr"><is><t>' . htmlspecialchars((string)$s['nama'], ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+
+            foreach ($mapelList as $m) {
+                $idP = (int)$m['id_pengampu'];
+                $val = $grades[$nis][$idP]['ats'] ?? null;
+                if ($val !== null && $val !== '') {
+                    $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"><v>' . (float)$val . '</v></c>';
+                } else {
+                    $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"/>';
+                }
+            }
+
+            // Total ATS & Rata-rata
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="8"><v>' . (float)$st['total_ats'] . '</v></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="8"><v>' . (float)$st['avg_ats'] . '</v></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"><v>' . (int)$s['sakit'] . '</v></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"><v>' . (int)$s['izin'] . '</v></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"><v>' . (int)$s['alpa'] . '</v></c>';
+
+            $sheetData .= '</row>';
+            $rowIdx++;
+        }
+
+        // Summary Row: Rata-rata Kelas
+        $subjectSummary = $stats['subject_summary'] ?? [];
+        $sheetData .= '<row r="' . $rowIdx . '" ht="21">';
+        $sheetData .= '<c r="A' . $rowIdx . '" s="9"/>';
+        $sheetData .= '<c r="B' . $rowIdx . '" s="9"/>';
+        $sheetData .= '<c r="C' . $rowIdx . '" s="9"/>';
+        $sheetData .= '<c r="D' . $rowIdx . '" s="10" t="inlineStr"><is><t>Rata-rata Kelas</t></is></c>';
+        $cIdx = 4;
+        foreach ($mapelList as $m) {
+            $idP = (int)$m['id_pengampu'];
+            $avgM = $subjectSummary[$idP]['avg_ats'] ?? '-';
+            if (is_numeric($avgM)) {
+                $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="9"><v>' . (float)$avgM . '</v></c>';
+            } else {
+                $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="9"/>';
+            }
+        }
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="9"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="9"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="9"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="9"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="9"/>';
+        $sheetData .= '</row>';
+        $rowIdx += 2;
+
+        // Signatures
+        $rowIdx++;
+        $cWaliCol = self::colLetter(max(1, count($mapelList)));
+        $sheetData .= '<row r="' . $rowIdx . '">';
+        $sheetData .= '<c r="B' . $rowIdx . '" t="inlineStr"><is><t>Mengetahui,</t></is></c>';
+        $sheetData .= '<c r="' . $cWaliCol . $rowIdx . '" t="inlineStr"><is><t>' . htmlspecialchars((string)($info['tempat_rapor'] ?? 'Nganjuk'), ENT_QUOTES | ENT_XML1, 'UTF-8') . ', ' . htmlspecialchars((string)($info['tanggal_rapor'] ?? date('d F Y')), ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $sheetData .= '</row>';
+        $rowIdx++;
+        $sheetData .= '<row r="' . $rowIdx . '">';
+        $sheetData .= '<c r="B' . $rowIdx . '" t="inlineStr"><is><t>Kepala Sekolah</t></is></c>';
+        $sheetData .= '<c r="' . $cWaliCol . $rowIdx . '" t="inlineStr"><is><t>Wali Kelas</t></is></c>';
+        $sheetData .= '</row>';
+        $rowIdx += 4;
+        $sheetData .= '<row r="' . $rowIdx . '">';
+        $sheetData .= '<c r="B' . $rowIdx . '" s="2" t="inlineStr"><is><t>' . htmlspecialchars((string)($info['nama_kepala_sekolah'] ?? '-'), ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $sheetData .= '<c r="' . $cWaliCol . $rowIdx . '" s="2" t="inlineStr"><is><t>' . $safeWali . '</t></is></c>';
+        $sheetData .= '</row>';
+        $rowIdx++;
+        $sheetData .= '<row r="' . $rowIdx . '">';
+        $sheetData .= '<c r="B' . $rowIdx . '" t="inlineStr"><is><t>NIP. ' . htmlspecialchars((string)($info['nip_kepala_sekolah'] ?? '-'), ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $sheetData .= '<c r="' . $cWaliCol . $rowIdx . '" t="inlineStr"><is><t>NIP. ' . htmlspecialchars((string)($info['id_guru_walikelas'] ?? '-'), ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $sheetData .= '</row>';
+
+        $sheetData .= '</sheetData>';
+
+        $totalCols = 4 + count($mapelList) + 5;
+        $sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <dimension ref="A1:' . self::colLetter($totalCols - 1) . $rowIdx . '"/>
+  <sheetViews>
+    <sheetView tabSelected="1" workbookViewId="0"/>
+  </sheetViews>
+  <sheetFormatPr defaultRowHeight="20"/>
+  <cols>
+    <col min="1" max="1" width="6" customWidth="1"/>
+    <col min="2" max="2" width="13" customWidth="1"/>
+    <col min="3" max="3" width="15" customWidth="1"/>
+    <col min="4" max="4" width="34" customWidth="1"/>';
+        for ($i = 5; $i <= $totalCols; $i++) {
+            $sheet .= '<col min="' . $i . '" max="' . $i . '" width="12" customWidth="1"/>';
+        }
+        $sheet .= '</cols>
+  ' . $sheetData . '
+</worksheet>';
+        $zip->addFromString('xl/worksheets/sheet1.xml', $sheet);
+        $zip->close();
+
+        // Output download
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($tempFile));
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        readfile($tempFile);
+        @unlink($tempFile);
+        exit;
+    }
+
+    /**
+     * Download Excel Ledger Nilai STS - Opsi B (Lengkap: Sumatif 1-4 & Nilai ATS per mapel)
+     */
+    public static function downloadLedgerLengkap(
+        string $filename,
+        array $info,
+        array $mapelList,
+        array $siswaList,
+        array $grades,
+        array $stats
+    ): void {
+        $tempFile = tempnam(sys_get_temp_dir(), 'xlsx_led_l_');
+        $zip = new ZipArchive();
+        $zip->open($tempFile, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        // [Content_Types].xml
+        $contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>';
+        $zip->addFromString('[Content_Types].xml', $contentTypes);
+
+        // _rels/.rels
+        $rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>';
+        $zip->addFromString('_rels/.rels', $rels);
+
+        // xl/_rels/workbook.xml.rels
+        $wbRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>';
+        $zip->addFromString('xl/_rels/workbook.xml.rels', $wbRels);
+
+        // xl/workbook.xml
+        $workbook = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>
+    <sheet name="Ledger Lengkap" sheetId="1" r:id="rId1"/>
+  </sheets>
+</workbook>';
+        $zip->addFromString('xl/workbook.xml', $workbook);
+
+        // xl/styles.xml
+        $styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts count="4">
+    <font><sz val="10"/><name val="Calibri"/></font>
+    <font><b/><sz val="10"/><name val="Calibri"/></font>
+    <font><b/><sz val="13"/><name val="Calibri"/><color rgb="FF1E3A8A"/></font>
+    <font><i/><sz val="9"/><name val="Calibri"/><color rgb="FF64748B"/></font>
+  </fonts>
+  <fills count="6">
+    <fill><patternFill patternType="none"/></fill>
+    <fill><patternFill patternType="gray125"/></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFD9E1F2"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFE2EFDA"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/></patternFill></fill>
+  </fills>
+  <borders count="2">
+    <border><left/><right/><top/><bottom/><diagonal/></border>
+    <border>
+      <left style="thin"><color auto="1"/></left>
+      <right style="thin"><color auto="1"/></right>
+      <top style="thin"><color auto="1"/></top>
+      <bottom style="thin"><color auto="1"/></bottom>
+      <diagonal/>
+    </border>
+  </borders>
+  <cellStyleXfs count="1">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
+  </cellStyleXfs>
+  <cellXfs count="11">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+    <xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+    <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center" wrapText="1"/>
+    </xf>
+    <xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center" wrapText="1"/>
+    </xf>
+    <xf numFmtId="0" fontId="1" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center" wrapText="1"/>
+    </xf>
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
+    </xf>
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="left" vertical="center"/>
+    </xf>
+    <xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
+    </xf>
+    <xf numFmtId="0" fontId="1" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
+    </xf>
+    <xf numFmtId="0" fontId="1" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="left" vertical="center"/>
+    </xf>
+  </cellXfs>
+  <cellStyles count="1">
+    <cellStyle name="Normal" xfId="0" builtinId="0"/>
+  </cellStyles>
+</styleSheet>';
+        $zip->addFromString('xl/styles.xml', $styles);
+
+        // xl/worksheets/sheet1.xml
+        $sheetData = '<sheetData>';
+
+        // Row 1: Judul
+        $sheetData .= '<row r="1" ht="25"><c r="A1" s="1" t="inlineStr"><is><t>LEGER NILAI ASESMEN TENGAH SEMESTER (RINCIAN LENGKAP)</t></is></c></row>';
+
+        // Row 2-4: Kop
+        $safeSekolah = htmlspecialchars((string)($info['nama_sekolah'] ?? 'SMA NEGERI 1 PRAMBON NGANJUK'), ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $safeKelas   = htmlspecialchars((string)($info['nama_kelas'] ?? '-'), ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $safeWali    = htmlspecialchars((string)($info['nama_walikelas'] ?? '-'), ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $safeSem     = htmlspecialchars((string)($info['semester'] ?? '1'), ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $safeTa      = htmlspecialchars((string)($info['tahun_ajaran'] ?? '2026/2027'), ENT_QUOTES | ENT_XML1, 'UTF-8');
+
+        $sheetData .= '<row r="2"><c r="A2" s="2" t="inlineStr"><is><t>Sekolah</t></is></c><c r="B2" t="inlineStr"><is><t>: ' . $safeSekolah . '</t></is></c></row>';
+        $sheetData .= '<row r="3"><c r="A3" s="2" t="inlineStr"><is><t>Kelas / Fase</t></is></c><c r="B3" t="inlineStr"><is><t>: Kelas ' . $safeKelas . ' (Tingkat ' . ($info['tingkat'] ?? '-') . ')</t></is></c><c r="E3" s="2" t="inlineStr"><is><t>Semester / TA</t></is></c><c r="F3" t="inlineStr"><is><t>: Semester ' . $safeSem . ' / ' . $safeTa . '</t></is></c></row>';
+        $sheetData .= '<row r="4"><c r="A4" s="2" t="inlineStr"><is><t>Wali Kelas</t></is></c><c r="B4" t="inlineStr"><is><t>: ' . $safeWali . '</t></is></c></row>';
+        $sheetData .= '<row r="5"/>';
+
+        // Row 6: Header Row 1 (Mapel names spanning 5 cols)
+        $sheetData .= '<row r="6" ht="26">';
+        $cIdx = 0;
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="3" t="inlineStr"><is><t>No</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="3" t="inlineStr"><is><t>NIS</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="3" t="inlineStr"><is><t>NISN</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="3" t="inlineStr"><is><t>Nama Siswa</t></is></c>';
+
+        foreach ($mapelList as $m) {
+            $isUmum = (strtolower(trim((string)$m['kategori'])) === 'umum');
+            $styleHeader = $isUmum ? '3' : '4';
+            $safeMName = htmlspecialchars((string)$m['nama_mapel'], ENT_QUOTES | ENT_XML1, 'UTF-8');
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="' . $styleHeader . '" t="inlineStr"><is><t>' . $safeMName . '</t></is></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="' . $styleHeader . '"/>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="' . $styleHeader . '"/>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="' . $styleHeader . '"/>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="' . $styleHeader . '"/>';
+        }
+
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5" t="inlineStr"><is><t>Ketidakhadiran</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5" t="inlineStr"><is><t>Total ATS</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5" t="inlineStr"><is><t>Rata ATS</t></is></c>';
+        $sheetData .= '</row>';
+
+        // Row 7: Sub-headers (01, 02, 03, 04, ATS for each mapel)
+        $sheetData .= '<row r="7" ht="22">';
+        $cIdx = 0;
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="3"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="3"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="3"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="3"/>';
+
+        foreach ($mapelList as $m) {
+            $isUmum = (strtolower(trim((string)$m['kategori'])) === 'umum');
+            $styleHeader = $isUmum ? '3' : '4';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="' . $styleHeader . '" t="inlineStr"><is><t>01</t></is></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="' . $styleHeader . '" t="inlineStr"><is><t>02</t></is></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="' . $styleHeader . '" t="inlineStr"><is><t>03</t></is></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="' . $styleHeader . '" t="inlineStr"><is><t>04</t></is></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="' . $styleHeader . '" t="inlineStr"><is><t>ATS</t></is></c>';
+        }
+
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="5" t="inlineStr"><is><t>S</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="5" t="inlineStr"><is><t>I</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="5" t="inlineStr"><is><t>A</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="5"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="5"/>';
+        $sheetData .= '</row>';
+
+        // Rows 8+: Data Siswa
+        $rowIdx = 8;
+        $studentStats = $stats['student_stats'] ?? [];
+        foreach ($siswaList as $idx => $s) {
+            $nis = $s['nis'];
+            $st = $studentStats[$nis] ?? ['total_ats' => 0, 'avg_ats' => 0];
+
+            $sheetData .= '<row r="' . $rowIdx . '" ht="20">';
+            $cIdx = 0;
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"><v>' . ($idx + 1) . '</v></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6" t="inlineStr"><is><t>' . htmlspecialchars((string)$s['nis'], ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6" t="inlineStr"><is><t>' . htmlspecialchars((string)($s['nisn'] ?? '-'), ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="7" t="inlineStr"><is><t>' . htmlspecialchars((string)$s['nama'], ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+
+            foreach ($mapelList as $m) {
+                $idP = (int)$m['id_pengampu'];
+                $g = $grades[$nis][$idP] ?? null;
+
+                foreach (['s1', 's2', 's3', 's4', 'ats'] as $key) {
+                    $val = $g[$key] ?? null;
+                    if ($val !== null && $val !== '') {
+                        $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"><v>' . (float)$val . '</v></c>';
+                    } else {
+                        $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"/>';
+                    }
+                }
+            }
+
+            // Ketidakhadiran & Total ATS
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"><v>' . (int)$s['sakit'] . '</v></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"><v>' . (int)$s['izin'] . '</v></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"><v>' . (int)$s['alpa'] . '</v></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="8"><v>' . (float)$st['total_ats'] . '</v></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="8"><v>' . (float)$st['avg_ats'] . '</v></c>';
+
+            $sheetData .= '</row>';
+            $rowIdx++;
+        }
+
+        // Summary Row: Rata-rata Kelas
+        $subjectSummary = $stats['subject_summary'] ?? [];
+        $sheetData .= '<row r="' . $rowIdx . '" ht="21">';
+        $sheetData .= '<c r="A' . $rowIdx . '" s="9"/>';
+        $sheetData .= '<c r="B' . $rowIdx . '" s="9"/>';
+        $sheetData .= '<c r="C' . $rowIdx . '" s="9"/>';
+        $sheetData .= '<c r="D' . $rowIdx . '" s="10" t="inlineStr"><is><t>Rata-rata Kelas</t></is></c>';
+        $cIdx = 4;
+        foreach ($mapelList as $m) {
+            $idP = (int)$m['id_pengampu'];
+            $sm = $subjectSummary[$idP] ?? [];
+
+            foreach (['avg_s1', 'avg_s2', 'avg_s3', 'avg_s4', 'avg_ats'] as $k) {
+                $val = $sm[$k] ?? '-';
+                if (is_numeric($val)) {
+                    $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="9"><v>' . (float)$val . '</v></c>';
+                } else {
+                    $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="9"/>';
+                }
+            }
+        }
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="9"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="9"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="9"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="9"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="9"/>';
+        $sheetData .= '</row>';
+        $rowIdx += 2;
+
+        // Signatures
+        $rowIdx++;
+        $cWaliCol = self::colLetter(max(1, count($mapelList) * 5));
+        $sheetData .= '<row r="' . $rowIdx . '">';
+        $sheetData .= '<c r="B' . $rowIdx . '" t="inlineStr"><is><t>Mengetahui,</t></is></c>';
+        $sheetData .= '<c r="' . $cWaliCol . $rowIdx . '" t="inlineStr"><is><t>' . htmlspecialchars((string)($info['tempat_rapor'] ?? 'Nganjuk'), ENT_QUOTES | ENT_XML1, 'UTF-8') . ', ' . htmlspecialchars((string)($info['tanggal_rapor'] ?? date('d F Y')), ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $sheetData .= '</row>';
+        $rowIdx++;
+        $sheetData .= '<row r="' . $rowIdx . '">';
+        $sheetData .= '<c r="B' . $rowIdx . '" t="inlineStr"><is><t>Kepala Sekolah</t></is></c>';
+        $sheetData .= '<c r="' . $cWaliCol . $rowIdx . '" t="inlineStr"><is><t>Wali Kelas</t></is></c>';
+        $sheetData .= '</row>';
+        $rowIdx += 4;
+        $sheetData .= '<row r="' . $rowIdx . '">';
+        $sheetData .= '<c r="B' . $rowIdx . '" s="2" t="inlineStr"><is><t>' . htmlspecialchars((string)($info['nama_kepala_sekolah'] ?? '-'), ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $sheetData .= '<c r="' . $cWaliCol . $rowIdx . '" s="2" t="inlineStr"><is><t>' . $safeWali . '</t></is></c>';
+        $sheetData .= '</row>';
+        $rowIdx++;
+        $sheetData .= '<row r="' . $rowIdx . '">';
+        $sheetData .= '<c r="B' . $rowIdx . '" t="inlineStr"><is><t>NIP. ' . htmlspecialchars((string)($info['nip_kepala_sekolah'] ?? '-'), ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $sheetData .= '<c r="' . $cWaliCol . $rowIdx . '" t="inlineStr"><is><t>NIP. ' . htmlspecialchars((string)($info['id_guru_walikelas'] ?? '-'), ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $sheetData .= '</row>';
+
+        $sheetData .= '</sheetData>';
+
+        $totalCols = 4 + (count($mapelList) * 5) + 5;
+        $sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <dimension ref="A1:' . self::colLetter($totalCols - 1) . $rowIdx . '"/>
+  <sheetViews>
+    <sheetView tabSelected="1" workbookViewId="0"/>
+  </sheetViews>
+  <sheetFormatPr defaultRowHeight="20"/>
+  <cols>
+    <col min="1" max="1" width="6" customWidth="1"/>
+    <col min="2" max="2" width="13" customWidth="1"/>
+    <col min="3" max="3" width="15" customWidth="1"/>
+    <col min="4" max="4" width="34" customWidth="1"/>';
+        for ($i = 5; $i <= $totalCols; $i++) {
+            $sheet .= '<col min="' . $i . '" max="' . $i . '" width="8" customWidth="1"/>';
+        }
+        $sheet .= '</cols>
+  ' . $sheetData . '
+</worksheet>';
+        $zip->addFromString('xl/worksheets/sheet1.xml', $sheet);
+        $zip->close();
+
+        // Output download
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($tempFile));
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        readfile($tempFile);
+        @unlink($tempFile);
+        exit;
+    }
+
     private static function colLetter(int $col): string
     {
         $letter = '';

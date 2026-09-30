@@ -1,6 +1,6 @@
 <?php
 session_start();
-if (empty($_SESSION['username']) || $_SESSION['role'] !== 'admin') {
+if (empty($_SESSION['username']) || !in_array($_SESSION['role'] ?? '', ['admin', 'walikelas'])) {
     die('Akses tidak diizinkan.');
 }
 
@@ -13,6 +13,41 @@ $model = new Kelas($conn);
 
 $action = $_POST['action'] ?? '';
 $result = ['success' => false, 'message' => 'Action tidak valid.'];
+
+// Keamanan khusus Wali Kelas: hanya boleh mengelola anggota kelas perwaliannya sendiri
+if ($_SESSION['role'] === 'walikelas') {
+    $idGuru = $_SESSION['id'] ?? '';
+    $myClass = $model->getByWaliKelas($idGuru);
+    $myIdKelas = $myClass ? (int)$myClass['id_kelas'] : 0;
+
+    if ($myIdKelas <= 0) {
+        die('Anda belum terdaftar sebagai wali kelas aktif.');
+    }
+
+    $allowedWaliActions = ['add_student_new', 'move_student', 'delete_student'];
+    if (!in_array($action, $allowedWaliActions, true)) {
+        die('Wali Kelas hanya berhak mengelola anggota kelas perwaliannya.');
+    }
+
+    // Validasi target kelas
+    if ($action === 'add_student_new') {
+        $_POST['id_kelas'] = $myIdKelas; // Paksa masuk ke kelas perwaliannya
+    } elseif ($action === 'delete_student') {
+        // Pastikan siswa yang dihapus memang anggota kelas perwaliannya
+        $nisCheck = trim($_POST['nis'] ?? '');
+        $stmtC = mysqli_prepare($conn, "SELECT id_kelas FROM tb_siswa WHERE nis = ?");
+        mysqli_stmt_bind_param($stmtC, "s", $nisCheck);
+        mysqli_stmt_execute($stmtC);
+        $rowC = mysqli_fetch_assoc(mysqli_stmt_get_result($stmtC));
+        if (!$rowC || (int)$rowC['id_kelas'] !== $myIdKelas) {
+            die('Anda hanya dapat mengeluarkan siswa dari kelas perwalian Anda sendiri.');
+        }
+    }
+}
+
+$redirectTo = $_POST['redirect_to'] ?? '';
+$defaultRedirect = ($_SESSION['role'] === 'walikelas') ? '../homeroom' : '../classes';
+$redirect = !empty($redirectTo) ? '../' . ltrim($redirectTo, '/') : $defaultRedirect;
 
 switch ($action) {
     case 'input':
@@ -150,5 +185,5 @@ switch ($action) {
 
 echo "<script>
 alert('" . addslashes($result['message']) . "');
-window.location='../classes';
+window.location='" . $redirect . "';
 </script>";
