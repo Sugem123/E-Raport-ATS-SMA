@@ -365,9 +365,9 @@ if ($selectedKelasId) {
                                         </th>
                                     <?php } ?>
 
-                                    <th colspan="3" class="bg-light" style="width: 80px;">Ketidakhadiran</th>
                                     <th rowspan="2" class="bg-warning-subtle text-dark" style="width: 60px;">Total ATS</th>
                                     <th rowspan="2" class="bg-warning-subtle text-dark" style="width: 60px;">Rata ATS</th>
+                                    <th colspan="3" class="bg-light" style="width: 80px;">Ketidakhadiran</th>
                                 </tr>
                                 <tr class="text-center">
                                     <?php foreach ($mapelList as $m) { ?>
@@ -406,12 +406,12 @@ if ($selectedKelasId) {
                                             <td class="fw-bold text-primary"><?= ($g && $g['ats'] !== null) ? (float)$g['ats'] : '-' ?></td>
                                         <?php } ?>
 
+                                        <td class="fw-bold"><?= $st['total_ats'] > 0 ? (float)$st['total_ats'] : '-' ?></td>
+                                        <td class="fw-bold text-primary"><?= $st['avg_ats'] > 0 ? (float)$st['avg_ats'] : '-' ?></td>
+
                                         <td><?= (int)$s['sakit'] ?></td>
                                         <td><?= (int)$s['izin'] ?></td>
                                         <td class="<?= (int)$s['alpa'] > 0 ? 'fw-bold text-danger' : '' ?>"><?= (int)$s['alpa'] ?></td>
-
-                                        <td class="fw-bold"><?= $st['total_ats'] > 0 ? (float)$st['total_ats'] : '-' ?></td>
-                                        <td class="fw-bold text-primary"><?= $st['avg_ats'] > 0 ? (float)$st['avg_ats'] : '-' ?></td>
                                     </tr>
                                 <?php } ?>
                             </tbody>

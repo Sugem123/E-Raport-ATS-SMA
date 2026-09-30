@@ -1054,13 +1054,6 @@ class SimpleXlsx
             $mergeList[] = self::colLetter($startCol) . '6:' . self::colLetter($endCol) . '6';
         }
 
-        $startKet = $cIdx;
-        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5" t="inlineStr"><is><t>Ketidakhadiran</t></is></c>';
-        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5"/>';
-        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5"/>';
-        $endKet = $cIdx - 1;
-        $mergeList[] = self::colLetter($startKet) . '6:' . self::colLetter($endKet) . '6';
-
         $colTot = self::colLetter($cIdx++);
         $sheetData .= '<c r="' . $colTot . '6" s="5" t="inlineStr"><is><t>Total ATS</t></is></c>';
         $mergeList[] = $colTot . '6:' . $colTot . '7';
@@ -1068,6 +1061,13 @@ class SimpleXlsx
         $colRata = self::colLetter($cIdx++);
         $sheetData .= '<c r="' . $colRata . '6" s="5" t="inlineStr"><is><t>Rata ATS</t></is></c>';
         $mergeList[] = $colRata . '6:' . $colRata . '7';
+
+        $startKet = $cIdx;
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5" t="inlineStr"><is><t>Ketidakhadiran</t></is></c>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '6" s="5"/>';
+        $endKet = $cIdx - 1;
+        $mergeList[] = self::colLetter($startKet) . '6:' . self::colLetter($endKet) . '6';
         $sheetData .= '</row>';
 
         // Row 7: Sub-headers (01, 02, 03, 04, ATS for each mapel)
@@ -1088,11 +1088,11 @@ class SimpleXlsx
             $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="' . $styleHeader . '" t="inlineStr"><is><t>ATS</t></is></c>';
         }
 
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="5"/>';
+        $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="5"/>';
         $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="5" t="inlineStr"><is><t>S</t></is></c>';
         $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="5" t="inlineStr"><is><t>I</t></is></c>';
         $sheetData .= '<c r="' . self::colLetter($cIdx++) . '7" s="5" t="inlineStr"><is><t>A</t></is></c>';
-        $sheetData .= '<c r="' . $colTot . '7" s="5"/>';
-        $sheetData .= '<c r="' . $colRata . '7" s="5"/>';
         $sheetData .= '</row>';
 
         // Rows 8+: Data Siswa
@@ -1123,12 +1123,12 @@ class SimpleXlsx
                 }
             }
 
-            // Ketidakhadiran & Total ATS
+            // Total ATS & Ketidakhadiran
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="8"><v>' . (float)$st['total_ats'] . '</v></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="8"><v>' . (float)$st['avg_ats'] . '</v></c>';
             $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"><v>' . (int)$s['sakit'] . '</v></c>';
             $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"><v>' . (int)$s['izin'] . '</v></c>';
             $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"><v>' . (int)$s['alpa'] . '</v></c>';
-            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="8"><v>' . (float)$st['total_ats'] . '</v></c>';
-            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="8"><v>' . (float)$st['avg_ats'] . '</v></c>';
 
             $sheetData .= '</row>';
             $rowIdx++;
