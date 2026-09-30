@@ -223,4 +223,103 @@ class Teacher
         }
         return $data;
     }
+
+    public function isBk(string $idGuru): bool
+    {
+        $idGuru = trim($idGuru);
+        if (empty($idGuru)) {
+            return false;
+        }
+
+        // Daftar NIP resmi Guru BK SMAN 1 Prambon
+        $knownBkTeachers = [
+            '199112092022211020', // WAHAYU PUJA UTAMA, S.Pd. (BK Kelas X)
+            '198503222022212022', // FERY BEKTIYANI, S.Pd. (BK Kelas XI)
+            '198605122019032006', // RAHMAWATI VIDA MEIKANTINA, S.Pd. (BK Kelas XII)
+            '197209231998022003', // ENDANG RAHAYU NINGSIH, S.Pd. (BK Kelas XII)
+        ];
+        if (in_array($idGuru, $knownBkTeachers, true)) {
+            return true;
+        }
+
+        // Cek apakah guru mengampu mapel BDKB atau BK/Konseling di tb_pengampu
+        $safeId = mysqli_real_escape_string($this->conn, $idGuru);
+        $q = mysqli_query($this->conn, "
+            SELECT 1 FROM tb_pengampu p
+            JOIN tb_mapel_referensi m ON p.id_mapel = m.id_mapel
+            WHERE p.id_guru = '$safeId'
+              AND (m.id_mapel = 'BDKB' OR m.nama_mapel LIKE '%Konseling%' OR m.nama_mapel LIKE '%BK%')
+            LIMIT 1
+        ");
+        if ($q && mysqli_num_rows($q) > 0) {
+            return true;
+        }
+
+        // Cek nama guru jika memuat gelar/indikator BK
+        $qName = mysqli_query($this->conn, "
+            SELECT 1 FROM tb_guru
+            WHERE id_guru = '$safeId'
+              AND (nama_guru LIKE '%BK%' OR nama_guru LIKE '%Bimbingan%' OR nama_guru LIKE '%Konseling%')
+            LIMIT 1
+        ");
+        return ($qName && mysqli_num_rows($qName) > 0);
+    }
+
+    public function getBkClasses(string $idGuru): array
+    {
+        $safeId = mysqli_real_escape_string($this->conn, $idGuru);
+        $q = mysqli_query($this->conn, "
+            SELECT DISTINCT k.id_kelas, k.nama_kelas, k.tingkat
+            FROM tb_pengampu p
+            JOIN tb_kelas k ON p.id_kelas = k.id_kelas
+            JOIN tb_mapel_referensi m ON p.id_mapel = m.id_mapel
+            WHERE p.id_guru = '$safeId'
+              AND (m.id_mapel = 'BDKB' OR m.nama_mapel LIKE '%Konseling%' OR m.nama_mapel LIKE '%BK%')
+            ORDER BY k.tingkat ASC, k.nama_kelas ASC
+        ");
+        $classes = [];
+        if ($q) {
+            while ($r = mysqli_fetch_assoc($q)) {
+                $classes[] = $r;
+            }
+        }
+
+        // Fallback jika belum diatur secara spesifik di tb_pengampu
+        if (empty($classes)) {
+            $defaultTingkat = match ($idGuru) {
+                '199112092022211020' => '10',
+                '198503222022212022' => '11',
+                '198605122019032006', '197209231998022003' => '12',
+                default => null
+            };
+
+            if ($defaultTingkat !== null) {
+                $qDef = mysqli_query($this->conn, "
+                    SELECT id_kelas, nama_kelas, tingkat
+                    FROM tb_kelas
+                    WHERE tingkat = '$defaultTingkat'
+                    ORDER BY nama_kelas ASC
+                ");
+                if ($qDef) {
+                    while ($r = mysqli_fetch_assoc($qDef)) {
+                        $classes[] = $r;
+                    }
+                }
+            } else {
+                // Guru BK umum: sediakan seluruh kelas
+                $qAll = mysqli_query($this->conn, "
+                    SELECT id_kelas, nama_kelas, tingkat
+                    FROM tb_kelas
+                    ORDER BY tingkat ASC, nama_kelas ASC
+                ");
+                if ($qAll) {
+                    while ($r = mysqli_fetch_assoc($qAll)) {
+                        $classes[] = $r;
+                    }
+                }
+            }
+        }
+
+        return $classes;
+    }
 }

@@ -46,35 +46,50 @@ switch ($action) {
         break;
 
     case 'upload_excel_presensi':
-        if (isset($_FILES['excel_file']) && $_FILES['excel_file']['error'] === UPLOAD_ERR_OK) {
-            $result = $grade->importExcelPresensi($_FILES['excel_file']['tmp_name'], $_FILES['excel_file']['name']);
-        } else {
-            $result = ['success' => false, 'message' => 'Gagal mengupload file Excel presensi.'];
-        }
-        break;
-
     case 'save_presensi':
-        $nis   = $_POST['nis'] ?? '';
-        $sakit = (int)($_POST['sakit'] ?? 0);
-        $izin  = (int)($_POST['izin'] ?? 0);
-        $alpa  = (int)($_POST['alpa'] ?? 0);
-
-        $result = $grade->savePresensi($nis, $sakit, $izin, $alpa);
-        break;
-
     case 'save_presensi_batch':
-        $presensiData = $_POST['presensi'] ?? [];
-        $count = 0;
-        foreach ($presensiData as $nis => $item) {
-            $sakit = max(0, (int)($item['sakit'] ?? 0));
-            $izin  = max(0, (int)($item['izin'] ?? 0));
-            $alpa  = max(0, (int)($item['alpa'] ?? 0));
-            $res = $grade->savePresensi((string)$nis, $sakit, $izin, $alpa);
-            if ($res['success']) {
-                $count++;
-            }
+        require_once __DIR__ . '/../models/Teacher.php';
+        $teacherModelGrade = new Teacher($conn);
+        $userRole = $_SESSION['role'] ?? '';
+        $userId   = (string)($_SESSION['id'] ?? '');
+
+        $canManagePresensi = (
+            $userRole === 'admin' ||
+            $userRole === 'walikelas' ||
+            ($userRole === 'guru' && $teacherModelGrade->isBk($userId))
+        );
+
+        if (!$canManagePresensi) {
+            $result = ['success' => false, 'message' => 'Akses ditolak: Pengisian ketidakhadiran hanya dapat dilakukan oleh Guru BK, Wali Kelas, dan Administrator.'];
+            break;
         }
-        $result = ['success' => true, 'message' => "Data ketidakhadiran $count siswa berhasil disimpan."];
+
+        if ($action === 'upload_excel_presensi') {
+            if (isset($_FILES['excel_file']) && $_FILES['excel_file']['error'] === UPLOAD_ERR_OK) {
+                $result = $grade->importExcelPresensi($_FILES['excel_file']['tmp_name'], $_FILES['excel_file']['name']);
+            } else {
+                $result = ['success' => false, 'message' => 'Gagal mengupload file Excel presensi.'];
+            }
+        } elseif ($action === 'save_presensi') {
+            $nis   = $_POST['nis'] ?? '';
+            $sakit = (int)($_POST['sakit'] ?? 0);
+            $izin  = (int)($_POST['izin'] ?? 0);
+            $alpa  = (int)($_POST['alpa'] ?? 0);
+            $result = $grade->savePresensi($nis, $sakit, $izin, $alpa);
+        } elseif ($action === 'save_presensi_batch') {
+            $presensiData = $_POST['presensi'] ?? [];
+            $count = 0;
+            foreach ($presensiData as $nis => $item) {
+                $sakit = max(0, (int)($item['sakit'] ?? 0));
+                $izin  = max(0, (int)($item['izin'] ?? 0));
+                $alpa  = max(0, (int)($item['alpa'] ?? 0));
+                $res = $grade->savePresensi((string)$nis, $sakit, $izin, $alpa);
+                if ($res['success']) {
+                    $count++;
+                }
+            }
+            $result = ['success' => true, 'message' => "Data ketidakhadiran $count siswa berhasil disimpan."];
+        }
         break;
 
     case 'delete':

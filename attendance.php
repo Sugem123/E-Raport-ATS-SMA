@@ -7,13 +7,8 @@ require_once "models/Setting.php";
 $db = new Database();
 $conn = $db->connect();
 
-$role = $_SESSION['role'] ?? '';
-$idGuru = $_SESSION['id'] ?? '';
-
-if (!in_array($role, ['admin', 'walikelas', 'guru'])) {
-    echo "<div class='alert alert-danger'>Akses ditolak.</div>";
-    return;
-}
+$role   = $_SESSION['role'] ?? '';
+$idGuru = (string)($_SESSION['id'] ?? '');
 
 $kelasModel   = new Kelas($conn);
 $teacherModel = new Teacher($conn);
@@ -22,22 +17,26 @@ $setting      = $settingModel->get();
 
 $allClasses = $kelasModel->getAll();
 
-// Deteksi apakah user adalah Guru BK
-$qBk = mysqli_query($conn, "
-    SELECT DISTINCT p.id_kelas, k.nama_kelas, k.tingkat
-    FROM tb_pengampu p
-    JOIN tb_kelas k ON p.id_kelas = k.id_kelas
-    JOIN tb_mapel_referensi m ON p.id_mapel = m.id_mapel
-    WHERE p.id_guru = '" . mysqli_real_escape_string($conn, $idGuru) . "'
-      AND (m.id_mapel = 'BDKB' OR m.nama_mapel LIKE '%Konseling%' OR m.nama_mapel LIKE '%BK%')
-    ORDER BY k.tingkat ASC, k.nama_kelas ASC
-");
-$isGuruBk = (mysqli_num_rows($qBk) > 0);
+// Deteksi status Guru BK
+$isGuruBk = ($role === 'guru' || $role === 'walikelas') && $teacherModel->isBk($idGuru);
 
-$bkClasses = [];
-while ($row = mysqli_fetch_assoc($qBk)) {
-    $bkClasses[] = $row;
+// Hak akses: Hanya Admin, Wali Kelas, dan Guru BK yang berhak mengelola ketidakhadiran
+if ($role === 'admin') {
+    $canAccess = true;
+} elseif ($role === 'walikelas') {
+    $canAccess = true;
+} elseif ($role === 'guru' && $isGuruBk) {
+    $canAccess = true;
+} else {
+    $canAccess = false;
 }
+
+if (!$canAccess) {
+    echo "<div class='container my-4'><div class='alert alert-danger shadow-sm border-0'><i class='fa-solid fa-triangle-exclamation me-2'></i><strong>Akses Ditolak:</strong> Halaman input ketidakhadiran hanya dapat diakses oleh <strong>Guru BK</strong>, <strong>Wali Kelas</strong>, dan <strong>Administrator</strong>.</div></div>";
+    return;
+}
+
+$bkClasses = $isGuruBk ? $teacherModel->getBkClasses($idGuru) : [];
 
 // Deteksi kelas wali
 $myHomeroomClass = null;
@@ -55,7 +54,7 @@ $availableClasses = [];
 if ($role === 'admin') {
     $availableClasses = $allClasses;
 } elseif ($role === 'walikelas') {
-    // Wali kelas selalu memiliki kelas perwaliannya, plus jika mengampu BK, kelas BK-nya juga
+    // Wali kelas selalu memiliki kelas perwaliannya, plus jika merangkap Guru BK, kelas BK-nya juga
     if ($myHomeroomClass) {
         $availableClasses[] = $myHomeroomClass;
     }
@@ -64,29 +63,11 @@ if ($role === 'admin') {
             $availableClasses[] = $bkC;
         }
     }
-    // Jika tidak ada kelas khusus, sediakan semua kelas
     if (empty($availableClasses)) {
         $availableClasses = $allClasses;
     }
-} elseif ($role === 'guru') {
-    if ($isGuruBk && !empty($bkClasses)) {
-        $availableClasses = $bkClasses;
-    } else {
-        // Guru umum: sediakan kelas yang diampu atau semua kelas
-        $qPeng = mysqli_query($conn, "
-            SELECT DISTINCT p.id_kelas, k.nama_kelas, k.tingkat
-            FROM tb_pengampu p
-            JOIN tb_kelas k ON p.id_kelas = k.id_kelas
-            WHERE p.id_guru = '" . mysqli_real_escape_string($conn, $idGuru) . "'
-            ORDER BY k.tingkat ASC, k.nama_kelas ASC
-        ");
-        while ($rP = mysqli_fetch_assoc($qPeng)) {
-            $availableClasses[] = $rP;
-        }
-        if (empty($availableClasses)) {
-            $availableClasses = $allClasses;
-        }
-    }
+} elseif ($role === 'guru' && $isGuruBk) {
+    $availableClasses = !empty($bkClasses) ? $bkClasses : $allClasses;
 }
 
 // Pemilihan kelas aktif

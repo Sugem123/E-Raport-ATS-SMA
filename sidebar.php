@@ -128,12 +128,24 @@ function navActive(string $target, string $current): string {
                         <span>Input Nilai STS</span>
                     </a>
                 </li>
+                <?php
+                if (!isset($conn)) {
+                    include_once __DIR__ . '/config/Database.php';
+                    $dbSidebar = new Database();
+                    $conn = $dbSidebar->connect();
+                }
+                require_once __DIR__ . '/models/Teacher.php';
+                $teacherModelSidebar = new Teacher($conn);
+                $isBkSidebar = $teacherModelSidebar->isBk((string)($_SESSION["id"] ?? ''));
+                if ($isBkSidebar) {
+                ?>
                 <li class="nav-item">
                     <a class="nav-link <?= navActive('attendance', $currentX) ?>" href="attendance">
                         <i class="fa-solid fa-clipboard-user text-warning"></i>
                         <span>Ketidakhadiran Siswa (BK)</span>
                     </a>
                 </li>
+                <?php } ?>
                 <?php } ?>
 
                 <?php if (($_SESSION["role"] ?? '') === "walikelas") { ?>
