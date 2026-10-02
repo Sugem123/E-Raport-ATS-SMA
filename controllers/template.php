@@ -24,7 +24,7 @@ if ($type === 'nilai_kelas') {
     // Verifikasi pengampu
     $stmt = mysqli_prepare(
         $conn,
-        "SELECT p.id_pengampu, p.id_guru, g.nama_guru, m.nama_mapel, k.nama_kelas
+        "SELECT p.id_pengampu, p.id_guru, p.id_mapel, g.nama_guru, m.nama_mapel, k.nama_kelas
          FROM tb_pengampu p
          INNER JOIN tb_mapel_referensi m ON p.id_mapel = m.id_mapel
          INNER JOIN tb_kelas k ON p.id_kelas = k.id_kelas
