@@ -172,6 +172,9 @@ class Teacher
                 INNER JOIN tb_mapel_referensi m ON p.id_mapel = m.id_mapel
                 INNER JOIN tb_kelas k ON p.id_kelas = k.id_kelas
                 WHERE p.id_guru = ?
+                  AND m.id_mapel != 'BDKB'
+                  AND m.nama_mapel NOT LIKE '%Konseling%'
+                  AND m.nama_mapel NOT LIKE '%Bimbingan%'
                 ORDER BY k.tingkat ASC, k.nama_kelas ASC, m.nama_mapel ASC";
         $stmt = mysqli_prepare($this->conn, $sql);
         mysqli_stmt_bind_param($stmt, "s", $idGuru);

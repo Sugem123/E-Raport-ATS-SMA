@@ -26,6 +26,8 @@ foreach ($myAssignments as $a) {
     }
 }
 
+$isOnlyBk = $teacherModel->isBk($idGuru) && empty($myAssignments);
+
 $students = [];
 if ($currentAssignment) {
     $students = $teacherModel->getStudentsForGrade($selectedPengampuId);
@@ -40,6 +42,19 @@ $bobot = $bobotModel->get();
             <h5 class="mb-0 fw-bold text-primary"><i class="fa-solid fa-pen-to-square me-2"></i>Penilaian Sumatif Tengah Semester (STS)</h5>
         </div>
         <div class="card-body">
+            <?php if ($isOnlyBk) { ?>
+                <div class="alert alert-info border-0 shadow-sm p-4 text-center my-3">
+                    <i class="fa-solid fa-user-shield fa-3x text-primary mb-3"></i>
+                    <h5 class="fw-bold">Akun Guru Bimbingan &amp; Konseling (BK)</h5>
+                    <p class="text-muted mb-3">
+                        Sebagai <strong>Guru BK</strong>, Anda tidak menginputkan penilaian angka/kognitif (Sumatif &amp; STS).
+                        Tugas Anda adalah mengelola <strong>Catatan Ketidakhadiran Siswa (Sakit, Izin, Alpa)</strong> untuk rombel binaan.
+                    </p>
+                    <a href="attendance" class="btn btn-warning fw-bold px-4 py-2">
+                        <i class="fa-solid fa-clipboard-user me-2"></i> Buka Menu Ketidakhadiran Siswa (BK)
+                    </a>
+                </div>
+            <?php } else { ?>
             <!-- Pilihan Kelas & Mapel yang Diampu -->
             <div class="row align-items-center mb-4 bg-light p-3 rounded mx-1">
                 <div class="col-md-7">
@@ -226,6 +241,7 @@ $bobot = $bobotModel->get();
         </div>
     </div>
 </div>
+<?php } ?>
 <?php } ?>
 
 <script>

@@ -27,21 +27,37 @@ $result = ['success' => false, 'message' => 'Action tidak valid.'];
 
 switch ($action) {
     case 'save_grade':
-        $nis = $_POST['nis'] ?? '';
-        $s1  = (isset($_POST['sumatif_1']) && $_POST['sumatif_1'] !== '') ? (float)$_POST['sumatif_1'] : null;
-        $s2  = (isset($_POST['sumatif_2']) && $_POST['sumatif_2'] !== '') ? (float)$_POST['sumatif_2'] : null;
-        $s3  = (isset($_POST['sumatif_3']) && $_POST['sumatif_3'] !== '') ? (float)$_POST['sumatif_3'] : null;
-        $s4  = (isset($_POST['sumatif_4']) && $_POST['sumatif_4'] !== '') ? (float)$_POST['sumatif_4'] : null;
-        $sts = (isset($_POST['nilai_sts']) && $_POST['nilai_sts'] !== '') ? (float)$_POST['nilai_sts'] : null;
-
-        $result = $grade->saveGrade($nis, $idPengampu, $s1, $s2, $s3, $s4, $sts);
-        break;
-
     case 'upload_excel':
-        if (isset($_FILES['excel_file']) && $_FILES['excel_file']['error'] === UPLOAD_ERR_OK) {
-            $result = $grade->importExcel($_FILES['excel_file']['tmp_name'], $_FILES['excel_file']['name'], $idPengampu);
+        // Cegah penginputan nilai untuk Bimbingan & Konseling (BK)
+        if ($idPengampu > 0) {
+            $qCheckBk = mysqli_query($conn, "
+                SELECT m.id_mapel, m.nama_mapel 
+                FROM tb_pengampu p
+                JOIN tb_mapel_referensi m ON p.id_mapel = m.id_mapel
+                WHERE p.id_pengampu = $idPengampu
+            ");
+            $mCheck = mysqli_fetch_assoc($qCheckBk);
+            if ($mCheck && ($mCheck['id_mapel'] === 'BDKB' || stripos($mCheck['nama_mapel'], 'Konseling') !== false || stripos($mCheck['nama_mapel'], 'Bimbingan') !== false)) {
+                $result = ['success' => false, 'message' => 'Layanan Bimbingan dan Konseling (BK) tidak menggunakan penilaian nilai kognitif. Guru BK hanya menginputkan ketidakhadiran siswa.'];
+                break;
+            }
+        }
+
+        if ($action === 'save_grade') {
+            $nis = $_POST['nis'] ?? '';
+            $s1  = (isset($_POST['sumatif_1']) && $_POST['sumatif_1'] !== '') ? (float)$_POST['sumatif_1'] : null;
+            $s2  = (isset($_POST['sumatif_2']) && $_POST['sumatif_2'] !== '') ? (float)$_POST['sumatif_2'] : null;
+            $s3  = (isset($_POST['sumatif_3']) && $_POST['sumatif_3'] !== '') ? (float)$_POST['sumatif_3'] : null;
+            $s4  = (isset($_POST['sumatif_4']) && $_POST['sumatif_4'] !== '') ? (float)$_POST['sumatif_4'] : null;
+            $sts = (isset($_POST['nilai_sts']) && $_POST['nilai_sts'] !== '') ? (float)$_POST['nilai_sts'] : null;
+
+            $result = $grade->saveGrade($nis, $idPengampu, $s1, $s2, $s3, $s4, $sts);
         } else {
-            $result = ['success' => false, 'message' => 'Gagal mengupload file Excel nilai.'];
+            if (isset($_FILES['excel_file']) && $_FILES['excel_file']['error'] === UPLOAD_ERR_OK) {
+                $result = $grade->importExcel($_FILES['excel_file']['tmp_name'], $_FILES['excel_file']['name'], $idPengampu);
+            } else {
+                $result = ['success' => false, 'message' => 'Gagal mengupload file Excel nilai.'];
+            }
         }
         break;
 

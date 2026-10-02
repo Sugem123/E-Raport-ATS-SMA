@@ -39,6 +39,11 @@ if ($type === 'nilai_kelas') {
         die('Penugasan mengajar tidak ditemukan.');
     }
 
+    // Layanan Bimbingan Konseling (BK) tidak memiliki penilaian kognitif/angka
+    if ($pengampu['id_mapel'] === 'BDKB' || stripos($pengampu['nama_mapel'], 'Konseling') !== false || stripos($pengampu['nama_mapel'], 'Bimbingan') !== false) {
+        die('Layanan Bimbingan dan Konseling (BK) tidak menggunakan penilaian angka/kognitif. Guru BK hanya menginputkan ketidakhadiran siswa.');
+    }
+
     // Jika user adalah guru, pastikan pengampu ini miliknya
     if ($_SESSION['role'] === 'guru' && $_SESSION['id'] !== $pengampu['id_guru']) {
         die('Anda tidak memiliki akses ke penugasan ini.');
