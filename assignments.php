@@ -13,8 +13,15 @@ $teacherModel  = new Teacher($conn);
 $mapelModel    = new Mapel($conn);
 $kelasModel    = new Kelas($conn);
 
+// --- Filter & Pencarian ---
+$search  = trim($_GET['search'] ?? '');
+$jenjang = trim($_GET['jenjang'] ?? '');
+if (!in_array($jenjang, ['10', '11', '12'], true)) {
+    $jenjang = '';
+}
+
 // --- Paginasi ---
-$total     = $pengampuModel->countAll();
+$total     = $pengampuModel->countAll($search, $jenjang);
 $perPage   = (int)($_GET['per_page'] ?? 25);
 if (!in_array($perPage, [25, 50, 100], true)) { $perPage = 25; }
 
@@ -24,7 +31,7 @@ if ($page < 1)    { $page = 1; }
 if ($page > $totalPage) { $page = $totalPage; }
 
 $offset   = ($page - 1) * $perPage;
-$assignments = $pengampuModel->getAll($perPage, $offset);
+$assignments = $pengampuModel->getAll($perPage, $offset, $search, $jenjang);
 $firstNo   = $total === 0 ? 0 : $offset + 1;
 $lastNo    = min($offset + $perPage, $total);
 
@@ -32,8 +39,13 @@ $teachers = $teacherModel->getAll();
 $subjects = $mapelModel->getAll();
 $classes  = $kelasModel->getAll();
 
-/** Bangun URL halaman lain sambil mempertahankan per_page. */
-$pageUrl = fn(int $p): string => '?page=' . $p . '&per_page=' . $perPage;
+/** Bangun URL halaman lain sambil mempertahankan filter, search, & per_page. */
+$pageUrl = function(int $p) use ($search, $jenjang, $perPage): string {
+    $params = ['x' => 'assignments', 'page' => $p, 'per_page' => $perPage];
+    if (!empty($search))  { $params['search'] = $search; }
+    if (!empty($jenjang)) { $params['jenjang'] = $jenjang; }
+    return '?' . http_build_query($params);
+};
 ?>
 
 <div class="col-lg-9 mt-2">
@@ -56,6 +68,60 @@ $pageUrl = fn(int $p): string => '?page=' . $p . '&per_page=' . $perPage;
             </div>
         </div>
         <div class="card-body">
+            <!-- Filter Bar: Search + Filter Jenjang -->
+            <div class="card bg-light border-0 mb-3">
+                <div class="card-body p-3">
+                    <form method="GET" action="" class="row g-2 align-items-center">
+                        <input type="hidden" name="x" value="assignments">
+                        <input type="hidden" name="per_page" value="<?= $perPage ?>">
+
+                        <!-- Input Pencarian -->
+                        <div class="col-12 col-md-5">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                                <input type="text" class="form-control" name="search"
+                                       value="<?= htmlspecialchars($search) ?>"
+                                       placeholder="Cari nama guru, NIP, mapel, atau kelas...">
+                                <?php if (!empty($search)) { ?>
+                                    <a href="?x=assignments<?= !empty($jenjang) ? '&jenjang=' . $jenjang : '' ?>" class="btn btn-outline-secondary" title="Hapus pencarian">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </a>
+                                <?php } ?>
+                            </div>
+                        </div>
+
+                        <!-- Filter Tab Jenjang -->
+                        <div class="col-12 col-md-5">
+                            <div class="btn-group btn-group-sm w-100" role="group">
+                                <a href="?x=assignments<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                                   class="btn <?= empty($jenjang) ? 'btn-primary fw-bold' : 'btn-outline-primary bg-white text-primary' ?>">
+                                    Semua
+                                </a>
+                                <a href="?x=assignments&jenjang=10<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                                   class="btn <?= $jenjang === '10' ? 'btn-primary fw-bold' : 'btn-outline-primary bg-white text-primary' ?>">
+                                    Kelas X
+                                </a>
+                                <a href="?x=assignments&jenjang=11<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                                   class="btn <?= $jenjang === '11' ? 'btn-primary fw-bold' : 'btn-outline-primary bg-white text-primary' ?>">
+                                    Kelas XI
+                                </a>
+                                <a href="?x=assignments&jenjang=12<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                                   class="btn <?= $jenjang === '12' ? 'btn-primary fw-bold' : 'btn-outline-primary bg-white text-primary' ?>">
+                                    Kelas XII
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Tombol Cari / Terapkan -->
+                        <div class="col-12 col-md-2 d-grid">
+                            <button type="submit" class="btn btn-primary btn-sm fw-semibold">
+                                <i class="fa-solid fa-filter me-1"></i> Filter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <div class="alert alert-light border small text-muted mb-3 py-2">
                 <i class="fa-solid fa-circle-info text-primary me-1"></i>
                 Penugasan ini menghubungkan <strong>Guru</strong> dengan <strong>Mata Pelajaran</strong> dan <strong>Kelas</strong> yang diajar. Guru hanya dapat menginput nilai pada kelas yang ditugaskan di sini.
@@ -132,7 +198,7 @@ $pageUrl = fn(int $p): string => '?page=' . $p . '&per_page=' . $perPage;
                 <div class="d-flex align-items-center gap-2">
                     <label class="text-muted small mb-0" for="perPageSelect">Baris per halaman</label>
                     <select class="form-select form-select-sm w-auto" id="perPageSelect"
-                            onchange="location.href='?page=1&per_page=' + this.value;">
+                            onchange="location.href='?x=assignments&page=1&per_page=' + this.value + '<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($jenjang) ? '&jenjang=' . $jenjang : '' ?>';">
                         <?php foreach ([25, 50, 100] as $opt) { ?>
                             <option value="<?= $opt ?>" <?= $opt === $perPage ? 'selected' : '' ?>><?= $opt ?></option>
                         <?php } ?>

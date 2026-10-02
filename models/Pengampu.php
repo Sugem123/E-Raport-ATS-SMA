@@ -23,13 +23,30 @@ class Pengampu
      * $limit = 0 berarti tanpa paginasi (ambil semua).
      * $limit/$offset sudah bertipe int, jadi aman disisipkan langsung ke SQL.
      */
-    public function getAll(int $limit = 0, int $offset = 0): array
+    public function getAll(int $limit = 0, int $offset = 0, string $search = '', string $jenjang = ''): array
     {
+        $where = [];
+        $search = trim($search);
+        $jenjang = trim($jenjang);
+
+        if (!empty($search)) {
+            $s = mysqli_real_escape_string($this->conn, $search);
+            $where[] = "(g.nama_guru LIKE '%$s%' OR g.id_guru LIKE '%$s%' OR m.nama_mapel LIKE '%$s%' OR m.id_mapel LIKE '%$s%' OR k.nama_kelas LIKE '%$s%')";
+        }
+
+        if (!empty($jenjang) && in_array($jenjang, ['10', '11', '12'], true)) {
+            $j = mysqli_real_escape_string($this->conn, $jenjang);
+            $where[] = "k.tingkat = '$j'";
+        }
+
+        $whereClause = !empty($where) ? " WHERE " . implode(" AND ", $where) : "";
+
         $sql = "SELECT p.*, g.nama_guru, m.nama_mapel, k.nama_kelas, k.tingkat
                 FROM tb_pengampu p
                 INNER JOIN tb_guru g ON p.id_guru = g.id_guru
                 INNER JOIN tb_mapel_referensi m ON p.id_mapel = m.id_mapel
                 INNER JOIN tb_kelas k ON p.id_kelas = k.id_kelas
+                $whereClause
                 ORDER BY " . self::URUT;
         if ($limit > 0) {
             $sql .= " LIMIT $limit OFFSET $offset";
@@ -42,11 +59,34 @@ class Pengampu
         return $data;
     }
 
-    /** Total penugasan, untuk menghitung jumlah halaman. */
-    public function countAll(): int
+    /** Total penugasan, untuk menghitung jumlah halaman (dengan filter). */
+    public function countAll(string $search = '', string $jenjang = ''): int
     {
-        $res = mysqli_query($this->conn, "SELECT COUNT(*) AS c FROM tb_pengampu");
-        return (int)mysqli_fetch_assoc($res)['c'];
+        $where = [];
+        $search = trim($search);
+        $jenjang = trim($jenjang);
+
+        if (!empty($search)) {
+            $s = mysqli_real_escape_string($this->conn, $search);
+            $where[] = "(g.nama_guru LIKE '%$s%' OR g.id_guru LIKE '%$s%' OR m.nama_mapel LIKE '%$s%' OR m.id_mapel LIKE '%$s%' OR k.nama_kelas LIKE '%$s%')";
+        }
+
+        if (!empty($jenjang) && in_array($jenjang, ['10', '11', '12'], true)) {
+            $j = mysqli_real_escape_string($this->conn, $jenjang);
+            $where[] = "k.tingkat = '$j'";
+        }
+
+        $whereClause = !empty($where) ? " WHERE " . implode(" AND ", $where) : "";
+
+        $sql = "SELECT COUNT(*) AS c
+                FROM tb_pengampu p
+                INNER JOIN tb_guru g ON p.id_guru = g.id_guru
+                INNER JOIN tb_mapel_referensi m ON p.id_mapel = m.id_mapel
+                INNER JOIN tb_kelas k ON p.id_kelas = k.id_kelas
+                $whereClause";
+
+        $res = mysqli_query($this->conn, $sql);
+        return (int)(mysqli_fetch_assoc($res)['c'] ?? 0);
     }
 
     /**
