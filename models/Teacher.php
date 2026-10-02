@@ -9,18 +9,49 @@ class Teacher
         $this->conn = $conn;
     }
 
-    public function getAll(): array
+    public function getAll(int $limit = 0, int $offset = 0, string $search = ''): array
     {
+        $search = trim($search);
+        $whereClause = "";
+        if (!empty($search)) {
+            $s = mysqli_real_escape_string($this->conn, $search);
+            $whereClause = " WHERE (g.nama_guru LIKE '%$s%' OR g.id_guru LIKE '%$s%' OR u.username LIKE '%$s%')";
+        }
+
         $sql = "SELECT u.id_user, u.username, g.id_guru, g.nama_guru
                 FROM tb_user u
                 INNER JOIN tb_guru g ON u.id_user = g.id_user
+                $whereClause
                 ORDER BY g.nama_guru ASC";
+
+        if ($limit > 0) {
+            $sql .= " LIMIT $limit OFFSET $offset";
+        }
+
         $query = mysqli_query($this->conn, $sql);
         $data = [];
         while ($row = mysqli_fetch_assoc($query)) {
             $data[] = $row;
         }
         return $data;
+    }
+
+    public function countAll(string $search = ''): int
+    {
+        $search = trim($search);
+        $whereClause = "";
+        if (!empty($search)) {
+            $s = mysqli_real_escape_string($this->conn, $search);
+            $whereClause = " WHERE (g.nama_guru LIKE '%$s%' OR g.id_guru LIKE '%$s%' OR u.username LIKE '%$s%')";
+        }
+
+        $sql = "SELECT COUNT(*) AS c
+                FROM tb_user u
+                INNER JOIN tb_guru g ON u.id_user = g.id_user
+                $whereClause";
+
+        $res = mysqli_query($this->conn, $sql);
+        return (int)(mysqli_fetch_assoc($res)['c'] ?? 0);
     }
 
     public function getById(string $idGuru): ?array

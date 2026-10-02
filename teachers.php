@@ -6,14 +6,42 @@ $db = new Database();
 $conn = $db->connect();
 
 $teacher = new Teacher($conn);
-$teachers = $teacher->getAll();
+
+// --- Filter Pencarian & Paginasi ---
+$search  = trim($_GET['search'] ?? '');
+$total   = $teacher->countAll($search);
+
+$perPage = (int)($_GET['per_page'] ?? 25);
+if (!in_array($perPage, [25, 50, 100], true)) {
+    $perPage = 25;
+}
+
+$totalPage = max(1, (int)ceil($total / $perPage));
+$page      = (int)($_GET['page'] ?? 1);
+if ($page < 1) { $page = 1; }
+if ($page > $totalPage) { $page = $totalPage; }
+
+$offset   = ($page - 1) * $perPage;
+$teachers = $teacher->getAll($perPage, $offset, $search);
+
+$firstNo  = $total === 0 ? 0 : $offset + 1;
+$lastNo   = min($offset + $perPage, $total);
+
+/** Bangun URL halaman lain sambil mempertahankan pencarian & per_page. */
+$pageUrl = function(int $p) use ($search, $perPage): string {
+    $params = ['x' => 'teachers', 'page' => $p, 'per_page' => $perPage];
+    if (!empty($search)) {
+        $params['search'] = $search;
+    }
+    return '?' . http_build_query($params);
+};
 ?>
 
 <div class="col-lg-9 mt-2">
     <div class="card shadow-sm border-0">
-        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <h5 class="mb-0 fw-bold text-primary"><i class="fa-solid fa-chalkboard-user me-2"></i>Data Guru</h5>
-            <div class="d-flex gap-2">
+            <div class="d-flex flex-wrap gap-2">
                 <a href="controllers/template.php?type=guru" class="btn btn-outline-success btn-sm">
                     <i class="fa-solid fa-file-excel me-1"></i> Download Template
                 </a>
@@ -26,6 +54,35 @@ $teachers = $teacher->getAll();
             </div>
         </div>
         <div class="card-body">
+            <!-- Filter Pencarian Cepat -->
+            <div class="card bg-light border-0 mb-3">
+                <div class="card-body p-3">
+                    <form method="GET" action="" class="row g-2 align-items-center">
+                        <input type="hidden" name="x" value="teachers">
+                        <input type="hidden" name="per_page" value="<?= $perPage ?>">
+
+                        <div class="col-12 col-md-9">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                                <input type="text" class="form-control" name="search"
+                                       value="<?= htmlspecialchars($search) ?>"
+                                       placeholder="Cari nama guru, NIP / ID Guru, atau username akun...">
+                                <?php if (!empty($search)) { ?>
+                                    <a href="?x=teachers" class="btn btn-outline-secondary" title="Hapus pencarian">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </a>
+                                <?php } ?>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-3 d-grid">
+                            <button type="submit" class="btn btn-primary btn-sm fw-semibold">
+                                <i class="fa-solid fa-filter me-1"></i> Cari Guru
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-light">
@@ -39,9 +96,9 @@ $teachers = $teacher->getAll();
                     </thead>
                     <tbody>
                         <?php if (empty($teachers)) { ?>
-                            <tr><td colspan="5" class="text-center py-4 text-muted">Belum ada data guru.</td></tr>
+                            <tr><td colspan="5" class="text-center py-4 text-muted">Belum ada data guru<?= !empty($search) ? ' yang sesuai dengan pencarian' : '' ?>.</td></tr>
                         <?php } else {
-                            $no = 1;
+                            $no = $firstNo;
                             foreach ($teachers as $row) {
                         ?>
                             <tr>
@@ -147,6 +204,51 @@ $teachers = $teacher->getAll();
                     </tbody>
                 </table>
             </div>
+
+            <?php if ($total > 0) { ?>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+                <div class="text-muted small">
+                    Menampilkan <strong><?= $firstNo ?></strong>&ndash;<strong><?= $lastNo ?></strong>
+                    dari <strong><?= number_format($total, 0, ',', '.') ?></strong> data guru
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <label class="text-muted small mb-0" for="perPageSelect">Baris per halaman</label>
+                    <select class="form-select form-select-sm w-auto" id="perPageSelect"
+                            onchange="location.href='?x=teachers&page=1&per_page=' + this.value + '<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>';">
+                        <?php foreach ([25, 50, 100] as $opt) { ?>
+                            <option value="<?= $opt ?>" <?= $opt === $perPage ? 'selected' : '' ?>><?= $opt ?></option>
+                        <?php } ?>
+                    </select>
+                </div>
+            </div>
+
+            <?php if ($totalPage > 1) { ?>
+            <nav class="mt-3" aria-label="Navigasi halaman guru">
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+                        <a class="page-link" href="<?= $pageUrl(max(1, $page - 1)) ?>" aria-label="Sebelumnya">
+                            <i class="fa fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    <?php
+                    $start = max(1, min($page - 2, $totalPage - 4));
+                    $end   = min($totalPage, max($page + 2, 5));
+                    for ($p = $start; $p <= $end; $p++) {
+                    ?>
+                        <li class="page-item <?= $p === $page ? 'active' : '' ?>">
+                            <a class="page-link" href="<?= $pageUrl($p) ?>"><?= $p ?></a>
+                        </li>
+                    <?php } ?>
+                    <li class="page-item <?= $page >= $totalPage ? 'disabled' : '' ?>">
+                        <a class="page-link" href="<?= $pageUrl(min($totalPage, $page + 1)) ?>" aria-label="Berikutnya">
+                            <i class="fa fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <?php } ?>
+            <?php } ?>
         </div>
     </div>
 </div>
