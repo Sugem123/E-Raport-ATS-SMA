@@ -214,8 +214,12 @@ class Kelas
             $countLengkap = 0;
             while ($n = mysqli_fetch_assoc($resN)) {
                 $nilaiMapel[$n['id_pengampu']] = $n;
-                if ($n['nilai_akhir'] !== null) {
-                    $totalAkhir += (float)$n['nilai_akhir'];
+                // Nilai terhitung jika nilai_sts tidak null atau nilai_akhir tidak null
+                $valRef = ($n['nilai_sts'] !== null && $n['nilai_sts'] !== '')
+                    ? (float)$n['nilai_sts']
+                    : (($n['nilai_akhir'] !== null && $n['nilai_akhir'] !== '') ? (float)$n['nilai_akhir'] : null);
+                if ($valRef !== null) {
+                    $totalAkhir += $valRef;
                     $countLengkap++;
                 }
             }
@@ -259,12 +263,13 @@ class Kelas
             $qM = mysqli_query($this->conn, "SELECT COUNT(*) as c FROM tb_pengampu WHERE id_kelas = $idKelas");
             $totalMapel = (int)(mysqli_fetch_assoc($qM)['c'] ?? 0);
 
-            // Total nilai masuk (di mana nilai_akhir IS NOT NULL)
+            // Total nilai masuk (di mana nilai_sts IS NOT NULL atau nilai_akhir IS NOT NULL)
             $sqlNilai = "SELECT COUNT(*) as c
                          FROM tb_nilai_sts n
                          INNER JOIN tb_pengampu p ON n.id_pengampu = p.id_pengampu
                          INNER JOIN tb_siswa s ON n.nis = s.nis
-                         WHERE p.id_kelas = $idKelas AND s.id_kelas = $idKelas AND n.nilai_akhir IS NOT NULL";
+                         WHERE p.id_kelas = $idKelas AND s.id_kelas = $idKelas 
+                           AND (n.nilai_sts IS NOT NULL OR n.nilai_akhir IS NOT NULL)";
             $qN = mysqli_query($this->conn, $sqlNilai);
             $totalNilaiMasuk = (int)(mysqli_fetch_assoc($qN)['c'] ?? 0);
 
@@ -274,7 +279,7 @@ class Kelas
             $sqlMapelLengkap = "SELECT COUNT(*) as c FROM (
                                     SELECT p.id_pengampu, COUNT(n.id_nilai) as cnt_nilai
                                     FROM tb_pengampu p
-                                    LEFT JOIN tb_nilai_sts n ON (p.id_pengampu = n.id_pengampu AND n.nilai_akhir IS NOT NULL)
+                                    LEFT JOIN tb_nilai_sts n ON (p.id_pengampu = n.id_pengampu AND (n.nilai_sts IS NOT NULL OR n.nilai_akhir IS NOT NULL))
                                     LEFT JOIN tb_siswa s ON (n.nis = s.nis AND s.id_kelas = p.id_kelas)
                                     WHERE p.id_kelas = $idKelas
                                     GROUP BY p.id_pengampu
@@ -371,10 +376,12 @@ class Kelas
             $totalMapel++;
 
             // Hitung siswa yang sudah dinilai pada mapel ini
-            $sqlNilai = "SELECT COUNT(*) as c, AVG(n.nilai_akhir) as avg_na
+            $sqlNilai = "SELECT COUNT(*) as c, 
+                                AVG(COALESCE(n.nilai_sts, n.nilai_akhir)) as avg_na
                          FROM tb_nilai_sts n
                          INNER JOIN tb_siswa s ON n.nis = s.nis
-                         WHERE n.id_pengampu = $idPengampu AND s.id_kelas = $idKelas AND n.nilai_akhir IS NOT NULL";
+                         WHERE n.id_pengampu = $idPengampu AND s.id_kelas = $idKelas 
+                           AND (n.nilai_sts IS NOT NULL OR n.nilai_akhir IS NOT NULL)";
             $resN = mysqli_query($this->conn, $sqlNilai);
             $rowN = mysqli_fetch_assoc($resN);
 
