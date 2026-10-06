@@ -39,19 +39,20 @@ class Ledger
 
         // 3. Daftar Mata Pelajaran di Kelas ini terurut sesuai mapping kurikulum
         //    (Kelompok Umum No. 1 s/d selesai di sebelah kiri, lalu Kelompok Pilihan No. 1 s/d selesai)
+        //    Hanya mapel yang telah di-mapping untuk jenjang kelas ini yang dimunculkan di leger.
         $sqlMapel = "
             SELECT p.id_pengampu, m.id_mapel, m.nama_mapel, g.nama_guru,
-                   COALESCE(mp.kategori, 'Umum') AS kategori,
-                   COALESCE(mp.urutan, 999) AS urutan
+                   mp.kategori,
+                   mp.urutan
             FROM tb_pengampu p
             INNER JOIN tb_kelas k ON p.id_kelas = k.id_kelas
             INNER JOIN tb_mapel_referensi m ON p.id_mapel = m.id_mapel
             INNER JOIN tb_guru g ON p.id_guru = g.id_guru
-            LEFT JOIN tb_mapel_mapping mp ON (mp.id_mapel = m.id_mapel AND mp.jenjang = k.tingkat)
+            INNER JOIN tb_mapel_mapping mp ON (mp.id_mapel = m.id_mapel AND mp.jenjang = k.tingkat)
             WHERE p.id_kelas = ?
             ORDER BY
-                CASE WHEN COALESCE(mp.kategori, 'Umum') = 'Umum' THEN 1 ELSE 2 END ASC,
-                COALESCE(mp.urutan, 999) ASC,
+                CASE WHEN mp.kategori = 'Umum' THEN 1 ELSE 2 END ASC,
+                mp.urutan ASC,
                 m.nama_mapel ASC
         ";
         $stmtM = mysqli_prepare($this->conn, $sqlMapel);

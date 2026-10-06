@@ -238,22 +238,23 @@ class Student
 
         // 2. Daftar nilai setiap mapel di kelas tersebut.
         //    Urutan & kategori diambil dari tb_mapel_mapping berdasarkan jenjang
-        //    kelas siswa, bukan dari tabel referensi.
+        //    kelas siswa. Hanya mata pelajaran yang terdaftar pada mapping kurikulum
+        //    jenjang tersebut (INNER JOIN) yang dimunculkan pada lembar rapor.
         $sql = "SELECT m.id_mapel, m.nama_mapel,
-                       COALESCE(mp.kategori, 'Umum') AS kategori,
-                       COALESCE(mp.urutan, 999) AS urutan,
+                       mp.kategori,
+                       mp.urutan,
                        g.nama_guru,
                        n.sumatif_1, n.sumatif_2, n.sumatif_3, n.sumatif_4,
                        n.nilai_sts
                 FROM tb_pengampu p
                 INNER JOIN tb_mapel_referensi m ON p.id_mapel = m.id_mapel
                 INNER JOIN tb_guru g ON p.id_guru = g.id_guru
-                LEFT JOIN tb_mapel_mapping mp ON (mp.id_mapel = m.id_mapel AND mp.jenjang = ?)
+                INNER JOIN tb_mapel_mapping mp ON (mp.id_mapel = m.id_mapel AND mp.jenjang = ?)
                 LEFT JOIN tb_nilai_sts n ON (p.id_pengampu = n.id_pengampu AND n.nis = ?)
                 WHERE p.id_kelas = ?
                 ORDER BY
-                    CASE WHEN COALESCE(mp.kategori, 'Umum') = 'Umum' THEN 1 ELSE 2 END ASC,
-                    COALESCE(mp.urutan, 999) ASC,
+                    CASE WHEN mp.kategori = 'Umum' THEN 1 ELSE 2 END ASC,
+                    mp.urutan ASC,
                     m.nama_mapel ASC";
         $stmt = mysqli_prepare($this->conn, $sql);
         mysqli_stmt_bind_param($stmt, "ssi", $tingkat, $nis, $idKelas);

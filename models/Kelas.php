@@ -172,18 +172,19 @@ class Kelas
 
         // 2. Ambil seluruh mata pelajaran di kelas ini, diurutkan sesuai
         //    mapping jenjang kelas tersebut (untuk cetak rapor).
+        //    Hanya mapel yang terdaftar di mapping kurikulum jenjang tersebut yang dimunculkan.
         $sqlMapel = "SELECT p.id_pengampu, m.id_mapel, m.nama_mapel, g.nama_guru,
-                            COALESCE(mp.kategori, 'Umum') AS kategori,
-                            COALESCE(mp.urutan, 999) AS urutan
+                            mp.kategori,
+                            mp.urutan
                      FROM tb_pengampu p
                      INNER JOIN tb_kelas k ON p.id_kelas = k.id_kelas
                      INNER JOIN tb_mapel_referensi m ON p.id_mapel = m.id_mapel
                      INNER JOIN tb_guru g ON p.id_guru = g.id_guru
-                     LEFT JOIN tb_mapel_mapping mp ON (mp.id_mapel = m.id_mapel AND mp.jenjang = k.tingkat)
+                     INNER JOIN tb_mapel_mapping mp ON (mp.id_mapel = m.id_mapel AND mp.jenjang = k.tingkat)
                      WHERE p.id_kelas = ?
                      ORDER BY
-                         CASE WHEN COALESCE(mp.kategori, 'Umum') = 'Umum' THEN 1 ELSE 2 END ASC,
-                         COALESCE(mp.urutan, 999) ASC,
+                         CASE WHEN mp.kategori = 'Umum' THEN 1 ELSE 2 END ASC,
+                         mp.urutan ASC,
                          m.nama_mapel ASC";
         $stmtM = mysqli_prepare($this->conn, $sqlMapel);
         mysqli_stmt_bind_param($stmtM, "i", $idKelas);
@@ -347,19 +348,19 @@ class Kelas
         $qS = mysqli_query($this->conn, "SELECT COUNT(*) as c FROM tb_siswa WHERE id_kelas = $idKelas");
         $totalSiswa = (int)(mysqli_fetch_assoc($qS)['c'] ?? 0);
 
-        // Ambil setiap pengampu mapel di kelas ini
+        // Ambil setiap pengampu mapel di kelas ini (hanya yang masuk dalam mapping jenjang)
         $sql = "SELECT p.id_pengampu, p.id_mapel, m.nama_mapel, p.id_guru, g.nama_guru,
-                       COALESCE(mp.kategori, 'Umum') AS kategori,
-                       COALESCE(mp.urutan, 999) AS urutan
+                       mp.kategori,
+                       mp.urutan
                 FROM tb_pengampu p
                 INNER JOIN tb_kelas k ON p.id_kelas = k.id_kelas
                 INNER JOIN tb_mapel_referensi m ON p.id_mapel = m.id_mapel
                 INNER JOIN tb_guru g ON p.id_guru = g.id_guru
-                LEFT JOIN tb_mapel_mapping mp ON (mp.id_mapel = m.id_mapel AND mp.jenjang = k.tingkat)
+                INNER JOIN tb_mapel_mapping mp ON (mp.id_mapel = m.id_mapel AND mp.jenjang = k.tingkat)
                 WHERE p.id_kelas = ?
                 ORDER BY
-                    CASE WHEN COALESCE(mp.kategori, 'Umum') = 'Umum' THEN 1 ELSE 2 END ASC,
-                    COALESCE(mp.urutan, 999) ASC,
+                    CASE WHEN mp.kategori = 'Umum' THEN 1 ELSE 2 END ASC,
+                    mp.urutan ASC,
                     m.nama_mapel ASC";
         $stmt = mysqli_prepare($this->conn, $sql);
         mysqli_stmt_bind_param($stmt, "i", $idKelas);
