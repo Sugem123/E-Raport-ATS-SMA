@@ -35,7 +35,7 @@ $teachers = $teacherModel->getAll();
                 <!-- BAGIAN 1: LOGO SEKOLAH -->
                 <div class="card border mb-4 rounded-3 shadow-none">
                     <div class="card-header bg-light py-2 px-3 fw-semibold text-dark">
-                        <i class="fa-solid fa-image me-1 text-primary"></i> Logo Satuan Pendidikan
+                        <i class="fa-solid fa-image me-1 text-primary"></i> Logo Satuan Pendidikan (Ikon & Watermark Rapor)
                     </div>
                     <div class="card-body p-3">
                         <div class="d-flex flex-wrap align-items-center gap-4">
@@ -67,6 +67,75 @@ $teachers = $teacherModel->getAll();
                                     </div>
                                 <?php } ?>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BAGIAN 1B: KOP SURAT RESMI (BANNER GAMBAR KOP CETAK) -->
+                <div class="card border mb-4 rounded-3 shadow-none">
+                    <div class="card-header bg-light py-2 px-3 fw-semibold text-dark d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fa-solid fa-heading me-1 text-success"></i> Gambar Kop Surat Resmi (Untuk Lembar Cetak)
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success small">Format Cetak A4</span>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="alert alert-light border small text-muted mb-3 py-2">
+                            <i class="fa-solid fa-circle-info text-primary me-1"></i>
+                            Kop surat ini akan otomatis digunakan pada bagian paling atas <strong>Daftar Penerimaan Rapor</strong>, <strong>Lembar Rapor Siswa</strong>, dan <strong>Leger Nilai</strong>. Jika belum diunggah, sistem akan menggunakan <em>Placeholder Kop Surat Standar</em> berbasis identitas sekolah.
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold mb-1">Pratinjau Kop Surat Saat Ini</label>
+                            <div class="p-3 border rounded-3 bg-white text-center shadow-sm" style="min-height: 110px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                <?php if (!empty($settings['kop_surat']) && file_exists(__DIR__ . '/' . $settings['kop_surat'])) { ?>
+                                    <img id="kopPreview" src="<?= htmlspecialchars($settings['kop_surat']) ?>?t=<?= time() ?>"
+                                         alt="Kop Surat Resmi" style="max-width: 100%; max-height: 140px; object-fit: contain;">
+                                <?php } else { ?>
+                                    <div id="kopPlaceholderBox" class="w-100 p-2" style="border: 2px dashed #cbd5e1; border-radius: 8px; background: #f8fafc;">
+                                        <div class="d-flex align-items-center justify-content-center gap-3">
+                                            <?php if (!empty($settings['logo_sekolah']) && file_exists(__DIR__ . '/' . $settings['logo_sekolah'])) { ?>
+                                                <img src="<?= htmlspecialchars($settings['logo_sekolah']) ?>" alt="Logo" style="width: 55px; height: 55px; object-fit: contain;">
+                                            <?php } else { ?>
+                                                <i class="fa-solid fa-graduation-cap fa-3x text-primary opacity-75"></i>
+                                            <?php } ?>
+                                            <div class="text-start">
+                                                <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #475569;">
+                                                    PEMERINTAH PROVINSI JAWA TIMUR &bull; DINAS PENDIDIKAN
+                                                </div>
+                                                <div style="font-size: 15px; font-weight: 800; color: #0f172a;">
+                                                    <?= htmlspecialchars($settings['nama_sekolah']) ?>
+                                                </div>
+                                                <div style="font-size: 10.5px; color: #64748b;">
+                                                    <?= htmlspecialchars($settings['alamat_sekolah']) ?> &bull; NPSN: <?= htmlspecialchars($settings['npsn']) ?> &bull; Telp: <?= htmlspecialchars($settings['telepon']) ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="badge bg-secondary-subtle text-secondary border mt-2" style="font-size: 10px;">
+                                            [ Placeholder Kop Standar Aktif &mdash; Unggah gambar jika ingin menggunakan kop desain resmi ]
+                                        </div>
+                                    </div>
+                                    <img id="kopPreview" src="" alt="Preview" style="display: none; max-width: 100%; max-height: 140px; object-fit: contain;">
+                                <?php } ?>
+                            </div>
+                        </div>
+
+                        <div class="row align-items-center g-2">
+                            <div class="col-md-8">
+                                <label class="form-label fw-semibold mb-1">Unggah Berkas Gambar Kop Surat Baru</label>
+                                <input type="file" class="form-control" name="kop_file" accept=".png,.jpg,.jpeg,.svg,.webp" id="inputKopFile">
+                                <small class="text-muted d-block mt-1">Disarankan gambar horizontal memanjang (Rasio sekitar 5:1 s/d 7:1, lebar minimal 1200px, PNG/JPG transparan/putih, Maks 4MB).</small>
+                            </div>
+                            <?php if (!empty($settings['kop_surat'])) { ?>
+                            <div class="col-md-4 pt-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="hapus_kop" value="1" id="checkHapusKop">
+                                    <label class="form-check-label text-danger small fw-semibold" for="checkHapusKop">
+                                        Hapus gambar kop dan kembali ke kop placeholder standar
+                                    </label>
+                                </div>
+                            </div>
+                            <?php } ?>
                         </div>
                     </div>
                 </div>
@@ -230,6 +299,25 @@ document.getElementById('inputLogoFile')?.addEventListener('change', function(e)
             if (preview) {
                 preview.src = evt.target.result;
                 preview.style.display = 'block';
+            }
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+document.getElementById('inputKopFile')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const preview = document.getElementById('kopPreview');
+            const placeholder = document.getElementById('kopPlaceholderBox');
+            if (preview) {
+                preview.src = evt.target.result;
+                preview.style.display = 'inline-block';
             }
             if (placeholder) {
                 placeholder.style.display = 'none';

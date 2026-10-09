@@ -130,8 +130,11 @@ if ($selectedKelasId) {
                         Tingkat <?= htmlspecialchars($classData['tingkat']) ?> (Fase <?= $classData['tingkat'] === '10' ? 'E' : 'F' ?>)
                     </small>
                 </div>
-                <div class="d-flex gap-2">
-                    <a href="bulk-print-view.php?kelas=<?= $selectedKelasId ?>" target="_blank" class="btn btn-danger shadow-sm">
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="receipt-print.php?kelas=<?= $selectedKelasId ?>" target="_blank" class="btn btn-outline-warning text-dark fw-semibold btn-sm shadow-sm">
+                        <i class="fa-solid fa-file-signature me-1 text-warning"></i> Cetak Tanda Terima Rapor
+                    </a>
+                    <a href="bulk-print-view.php?kelas=<?= $selectedKelasId ?>" target="_blank" class="btn btn-danger btn-sm shadow-sm">
                         <i class="fa-solid fa-print me-1"></i> Buka & Cetak Massal Semua Siswa (<?= $totalSiswa ?>)
                     </a>
                 </div>

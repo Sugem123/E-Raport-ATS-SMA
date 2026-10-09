@@ -12,7 +12,8 @@ $conn = $db->connect();
 $settingModel = new Setting($conn);
 
 $logoFile = $_FILES['logo_file'] ?? null;
-$result = $settingModel->update($_POST, $logoFile);
+$kopFile  = $_FILES['kop_file'] ?? null;
+$result   = $settingModel->update($_POST, $logoFile, $kopFile);
 
 $redirectTo = $_POST['redirect_to'] ?? 'settings';
 if (!in_array($redirectTo, ['settings', 'school-profile'], true)) {

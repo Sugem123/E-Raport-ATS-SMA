@@ -68,6 +68,9 @@ if ($myIdKelas > 0) {
                     <a href="grade-monitor" class="btn btn-outline-info btn-sm">
                         <i class="fa-solid fa-chart-pie me-1"></i> Monitor Mapel
                     </a>
+                    <a href="receipt-print.php?kelas=<?= $myIdKelas ?>" target="_blank" class="btn btn-outline-warning text-dark fw-semibold btn-sm shadow-sm">
+                        <i class="fa-solid fa-file-signature me-1 text-warning"></i> Tanda Terima Rapor
+                    </a>
                     <a href="bulk-print-view.php?kelas=<?= $myIdKelas ?>" target="_blank" class="btn btn-danger btn-sm shadow-sm">
                         <i class="fa-solid fa-print me-1"></i> Cetak Massal Rapor
                     </a>

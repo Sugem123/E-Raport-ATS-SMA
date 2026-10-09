@@ -19,6 +19,7 @@ class Setting
             'nama_sekolah'        => 'SMA NEGERI 1 PRAMBON NGANJUK',
             'alamat_sekolah'      => 'JL. A. YANI 1 SUGIHWARAS PRAMBON',
             'logo_sekolah'        => null,
+            'kop_surat'           => null,
             'npsn'                => '20539744',
             'akreditasi'          => 'A (Unggul)',
             'slogan'              => 'Unggul dalam Prestasi, Berkarakter, dan Berbudaya Lingkungan',
@@ -39,7 +40,7 @@ class Setting
         }
 
         foreach ($defaults as $k => $v) {
-            if (!isset($data[$k]) || ($data[$k] === null && $k !== 'logo_sekolah')) {
+            if (!isset($data[$k]) || ($data[$k] === null && !in_array($k, ['logo_sekolah', 'kop_surat'], true))) {
                 $data[$k] = $v;
             }
         }
@@ -47,7 +48,7 @@ class Setting
         return $data;
     }
 
-    public function update(array $data, ?array $file = null): array
+    public function update(array $data, ?array $file = null, ?array $kopFile = null): array
     {
         $current = $this->get();
 
@@ -67,7 +68,8 @@ class Setting
         $tempatRapor   = trim($data['tempat_rapor'] ?? $current['tempat_rapor']);
         $tanggalRapor  = trim($data['tanggal_rapor'] ?? $current['tanggal_rapor']);
 
-        $logoPath = $current['logo_sekolah'];
+        $logoPath = $current['logo_sekolah'] ?? null;
+        $kopPath  = $current['kop_surat'] ?? null;
 
         // Cek hapus logo
         if (!empty($data['hapus_logo'])) {
@@ -75,6 +77,19 @@ class Setting
                 @unlink(__DIR__ . '/../' . $logoPath);
             }
             $logoPath = null;
+        }
+
+        // Cek hapus kop surat
+        if (!empty($data['hapus_kop'])) {
+            if ($kopPath && file_exists(__DIR__ . '/../' . $kopPath)) {
+                @unlink(__DIR__ . '/../' . $kopPath);
+            }
+            $kopPath = null;
+        }
+
+        $uploadDir = __DIR__ . '/../uploads/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
         }
 
         // Cek upload logo baru
@@ -88,11 +103,6 @@ class Setting
 
             if ($file['size'] > 2 * 1024 * 1024) {
                 return ['success' => false, 'message' => 'Ukuran logo maksimal 2MB.'];
-            }
-
-            $uploadDir = __DIR__ . '/../uploads/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
             }
 
             // Hapus logo lama jika ada
@@ -110,6 +120,34 @@ class Setting
             }
         }
 
+        // Cek upload berkas gambar kop surat baru
+        if ($kopFile && isset($kopFile['error']) && $kopFile['error'] === UPLOAD_ERR_OK) {
+            $allowedExt = ['png', 'jpg', 'jpeg', 'svg', 'webp'];
+            $extKop = strtolower(pathinfo($kopFile['name'], PATHINFO_EXTENSION));
+
+            if (!in_array($extKop, $allowedExt, true)) {
+                return ['success' => false, 'message' => 'Format kop surat harus PNG, JPG, JPEG, WEBP, atau SVG.'];
+            }
+
+            if ($kopFile['size'] > 4 * 1024 * 1024) {
+                return ['success' => false, 'message' => 'Ukuran kop surat maksimal 4MB.'];
+            }
+
+            // Hapus kop lama jika ada
+            if ($kopPath && file_exists(__DIR__ . '/../' . $kopPath)) {
+                @unlink(__DIR__ . '/../' . $kopPath);
+            }
+
+            $filenameKop = 'kop_surat_' . time() . '.' . $extKop;
+            $destKop = $uploadDir . $filenameKop;
+
+            if (move_uploaded_file($kopFile['tmp_name'], $destKop)) {
+                $kopPath = 'uploads/' . $filenameKop;
+            } else {
+                return ['success' => false, 'message' => 'Gagal mengupload kop surat ke server.'];
+            }
+        }
+
         if (empty($namaKepsek)) {
             return ['success' => false, 'message' => 'Nama Kepala Sekolah tidak boleh kosong.'];
         }
@@ -120,12 +158,13 @@ class Setting
         $stmt = mysqli_prepare(
             $this->conn,
             "INSERT INTO tb_pengaturan_rapor
-             (id, nama_sekolah, alamat_sekolah, logo_sekolah, npsn, akreditasi, slogan, telepon, email, website, deskripsi_sekolah, tahun_ajaran, semester, nama_kepala_sekolah, nip_kepala_sekolah, tempat_rapor, tanggal_rapor)
-             VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             (id, nama_sekolah, alamat_sekolah, logo_sekolah, kop_surat, npsn, akreditasi, slogan, telepon, email, website, deskripsi_sekolah, tahun_ajaran, semester, nama_kepala_sekolah, nip_kepala_sekolah, tempat_rapor, tanggal_rapor)
+             VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
              nama_sekolah = VALUES(nama_sekolah),
              alamat_sekolah = VALUES(alamat_sekolah),
              logo_sekolah = VALUES(logo_sekolah),
+             kop_surat = VALUES(kop_surat),
              npsn = VALUES(npsn),
              akreditasi = VALUES(akreditasi),
              slogan = VALUES(slogan),
@@ -143,10 +182,11 @@ class Setting
 
         mysqli_stmt_bind_param(
             $stmt,
-            "ssssssssssssssss",
+            "sssssssssssssssss",
             $namaSekolah,
             $alamatSekolah,
             $logoPath,
+            $kopPath,
             $npsn,
             $akreditasi,
             $slogan,

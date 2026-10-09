@@ -290,6 +290,9 @@ $semGanjilGenapCap = ucfirst(strtolower($semGanjilGenap));
         </div>
     </div>
     <div class="d-flex align-items-center gap-2">
+        <a href="receipt-print.php?kelas=<?= $idKelas ?>" target="_blank" class="btn btn-outline-warning text-white btn-sm">
+            <i class="fa-solid fa-file-signature me-1"></i> Tanda Terima Rapor
+        </a>
         <button onclick="window.print();" class="btn btn-primary fw-bold px-4 shadow">
             <i class="fa-solid fa-print me-1"></i> Cetak / Simpan PDF (<?= $totalSiswa ?> Siswa)
         </button>
