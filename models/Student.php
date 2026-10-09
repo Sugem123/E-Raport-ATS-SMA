@@ -262,8 +262,61 @@ class Student
         $res = mysqli_stmt_get_result($stmt);
 
         $grades = [];
+        $agamaList = [];
+        $hasAnyAgamaWithGrade = false;
+
         while ($row = mysqli_fetch_assoc($res)) {
-            $grades[] = $row;
+            $idM = (string)$row['id_mapel'];
+            $isAgama = (str_starts_with($idM, 'PA') || stripos($row['nama_mapel'], 'Pendidikan Agama') !== false);
+            
+            // Periksa apakah mapel ini memiliki nilai (sumatif atau sts)
+            $hasGrade = (
+                ($row['sumatif_1'] !== null && $row['sumatif_1'] !== '') ||
+                ($row['sumatif_2'] !== null && $row['sumatif_2'] !== '') ||
+                ($row['sumatif_3'] !== null && $row['sumatif_3'] !== '') ||
+                (isset($row['sumatif_4']) && $row['sumatif_4'] !== null && $row['sumatif_4'] !== '') ||
+                ($row['nilai_sts'] !== null && $row['nilai_sts'] !== '')
+            );
+            $row['has_grade'] = $hasGrade;
+
+            if ($isAgama) {
+                $agamaList[] = $row;
+                if ($hasGrade) {
+                    $hasAnyAgamaWithGrade = true;
+                }
+            } else {
+                $grades[] = $row;
+            }
+        }
+
+        // Filter khusus Agama:
+        // 1. Jika ada mapel agama yang terisi nilainya untuk siswa ini, HANYA tampilkan agama yang ada nilainya.
+        // 2. Jika seluruh mapel agama di kelas belum ada nilainya, ambil 1 mapel agama pertama (default/Islam) agar tidak dobel.
+        if (!empty($agamaList)) {
+            if ($hasAnyAgamaWithGrade) {
+                foreach ($agamaList as $ag) {
+                    if ($ag['has_grade']) {
+                        $grades[] = $ag;
+                    }
+                }
+            } else {
+                $grades[] = $agamaList[0];
+            }
+
+            // Urutkan kembali sesuai aturan rapor (Umum dahulu, urutan ASC, nama ASC)
+            usort($grades, function ($a, $b) {
+                $katA = ($a['kategori'] === 'Umum') ? 1 : 2;
+                $katB = ($b['kategori'] === 'Umum') ? 1 : 2;
+                if ($katA !== $katB) {
+                    return $katA <=> $katB;
+                }
+                $urtA = (int)($a['urutan'] ?? 999);
+                $urtB = (int)($b['urutan'] ?? 999);
+                if ($urtA !== $urtB) {
+                    return $urtA <=> $urtB;
+                }
+                return strcmp($a['nama_mapel'], $b['nama_mapel']);
+            });
         }
 
         // 3. Presensi
