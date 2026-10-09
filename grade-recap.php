@@ -9,13 +9,68 @@ $conn = $db->connect();
 $teacherModel = new Teacher($conn);
 $bobotModel   = new Bobot($conn);
 
-$idGuru = $_SESSION['id'] ?? '';
-$myAssignments = $teacherModel->getPengampu($idGuru);
+$role   = $_SESSION['role'] ?? '';
+$idGuru = (string)($_SESSION['id'] ?? '');
 
-// Pengampu yang sedang dipilih
 $selectedPengampuId = isset($_GET['id_pengampu']) ? (int)$_GET['id_pengampu'] : 0;
-if ($selectedPengampuId === 0 && !empty($myAssignments)) {
-    $selectedPengampuId = (int)$myAssignments[0]['id_pengampu'];
+$selectedKelasId    = isset($_GET['kelas']) ? (int)$_GET['kelas'] : 0;
+
+$allClasses = [];
+if ($role === 'admin') {
+    require_once "models/Kelas.php";
+    $kelasModel = new Kelas($conn);
+    $allClasses = $kelasModel->getAll();
+
+    // Jika id_pengampu disertakan, cari kelas miliknya
+    if ($selectedPengampuId > 0) {
+        $qCekP = mysqli_query($conn, "SELECT id_kelas FROM tb_pengampu WHERE id_pengampu = $selectedPengampuId");
+        if ($rCekP = mysqli_fetch_assoc($qCekP)) {
+            $selectedKelasId = (int)$rCekP['id_kelas'];
+        }
+    }
+
+    if ($selectedKelasId === 0 && !empty($allClasses)) {
+        $selectedKelasId = (int)$allClasses[0]['id_kelas'];
+    }
+
+    // Ambil penugasan di kelas ini (hanya mapel yang masuk dalam mapping jenjang & bukan BK)
+    $qMapelKelas = mysqli_query($conn, "
+        SELECT p.id_pengampu, p.id_guru, g.nama_guru, m.id_mapel, m.nama_mapel, k.id_kelas, k.nama_kelas, k.tingkat
+        FROM tb_pengampu p
+        INNER JOIN tb_mapel_referensi m ON p.id_mapel = m.id_mapel
+        INNER JOIN tb_kelas k ON p.id_kelas = k.id_kelas
+        INNER JOIN tb_guru g ON p.id_guru = g.id_guru
+        INNER JOIN tb_mapel_mapping mp ON (mp.id_mapel = m.id_mapel AND mp.jenjang = k.tingkat)
+        WHERE p.id_kelas = $selectedKelasId
+          AND m.id_mapel != 'BDKB'
+          AND m.nama_mapel NOT LIKE '%Konseling%'
+          AND m.nama_mapel NOT LIKE '%Bimbingan%'
+        ORDER BY
+            CASE WHEN mp.kategori = 'Umum' THEN 1 ELSE 2 END ASC,
+            mp.urutan ASC,
+            m.nama_mapel ASC
+    ");
+    $myAssignments = [];
+    while ($rowM = mysqli_fetch_assoc($qMapelKelas)) {
+        $myAssignments[] = $rowM;
+    }
+
+    // Pastikan selectedPengampuId ada dalam daftar myAssignments kelas ini
+    $foundP = false;
+    foreach ($myAssignments as $a) {
+        if ((int)$a['id_pengampu'] === $selectedPengampuId) {
+            $foundP = true;
+            break;
+        }
+    }
+    if (!$foundP && !empty($myAssignments)) {
+        $selectedPengampuId = (int)$myAssignments[0]['id_pengampu'];
+    }
+} else {
+    $myAssignments = $teacherModel->getPengampu($idGuru);
+    if ($selectedPengampuId === 0 && !empty($myAssignments)) {
+        $selectedPengampuId = (int)$myAssignments[0]['id_pengampu'];
+    }
 }
 
 $currentAssignment = null;
@@ -26,7 +81,7 @@ foreach ($myAssignments as $a) {
     }
 }
 
-$isOnlyBk = $teacherModel->isBk($idGuru) && empty($myAssignments);
+$isOnlyBk = ($role === 'guru') && $teacherModel->isBk($idGuru) && empty($myAssignments);
 
 $students = [];
 if ($currentAssignment) {
@@ -38,8 +93,18 @@ $bobot = $bobotModel->get();
 
 <div class="col-lg-9 mt-2">
     <div class="card shadow-sm border-0">
-        <div class="card-header bg-white py-3">
-            <h5 class="mb-0 fw-bold text-primary"><i class="fa-solid fa-pen-to-square me-2"></i>Penilaian Sumatif Tengah Semester (STS)</h5>
+        <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h5 class="mb-0 fw-bold text-primary">
+                <i class="fa-solid fa-pen-to-square me-2"></i>Penilaian Sumatif Tengah Semester (STS)
+                <?php if ($role === 'admin') { ?>
+                    <span class="badge bg-danger-subtle text-danger border border-danger ms-2 fs-6">Mode Administrator</span>
+                <?php } ?>
+            </h5>
+            <?php if ($role === 'admin') { ?>
+                <a href="grade-monitor<?= $selectedKelasId > 0 ? '?kelas=' . $selectedKelasId : '' ?>" class="btn btn-outline-secondary btn-sm">
+                    <i class="fa-solid fa-chart-pie me-1"></i> Buka Monitor Kelas
+                </a>
+            <?php } ?>
         </div>
         <div class="card-body">
             <?php if ($isOnlyBk) { ?>
@@ -56,54 +121,98 @@ $bobot = $bobotModel->get();
                 </div>
             <?php } else { ?>
             <!-- Pilihan Kelas & Mapel yang Diampu -->
-            <div class="row align-items-center mb-4 bg-light p-3 rounded mx-1">
-                <div class="col-md-7">
-                    <label class="form-label small fw-bold text-muted text-uppercase">Pilih Kelas & Mata Pelajaran Diampu</label>
-                    <div class="dropdown">
-                        <button class="btn btn-outline-primary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown">
-                            <span>
-                                <?php if ($currentAssignment) { ?>
-                                    <strong><?= htmlspecialchars($currentAssignment['nama_mapel']) ?></strong> &mdash; Kelas <?= htmlspecialchars($currentAssignment['nama_kelas']) ?> (Tingkat <?= $currentAssignment['tingkat'] ?>)
-                                <?php } else { ?>
-                                    Belum ada penugasan mengajar
-                                <?php } ?>
-                            </span>
-                        </button>
-                        <ul class="dropdown-menu w-100 shadow">
-                            <?php foreach ($myAssignments as $a) { ?>
-                                <li>
-                                    <a class="dropdown-item py-2 <?= (int)$a['id_pengampu'] === $selectedPengampuId ? 'active' : '' ?>" href="grade-recap?id_pengampu=<?= $a['id_pengampu'] ?>">
-                                        <i class="fa-solid fa-chalkboard me-2"></i>
-                                        <strong><?= htmlspecialchars($a['nama_mapel']) ?></strong> &mdash; Kelas <?= htmlspecialchars($a['nama_kelas']) ?>
-                                    </a>
-                                </li>
+            <div class="row align-items-center mb-4 bg-light p-3 rounded mx-1 g-2">
+                <?php if ($role === 'admin') { ?>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label small fw-bold text-muted text-uppercase mb-1">
+                            <i class="fa-solid fa-chalkboard me-1 text-primary"></i>Pilih Rombel / Kelas
+                        </label>
+                        <select class="form-select form-select-sm fw-bold border-primary" onchange="location.href='grade-recap?kelas=' + this.value;">
+                            <?php foreach ($allClasses as $c) { ?>
+                                <option value="<?= $c['id_kelas'] ?>" <?= (int)$c['id_kelas'] === $selectedKelasId ? 'selected' : '' ?>>
+                                    Kelas <?= htmlspecialchars($c['nama_kelas']) ?> (Tingkat <?= $c['tingkat'] ?>)
+                                </option>
                             <?php } ?>
-                        </ul>
+                        </select>
                     </div>
-                </div>
-                <div class="col-md-5 mt-3 mt-md-0 d-flex justify-content-md-end gap-2">
-                    <?php if ($currentAssignment) { ?>
-                        <a href="controllers/template.php?type=nilai_kelas&id_pengampu=<?= $selectedPengampuId ?>" class="btn btn-outline-success btn-sm">
-                            <i class="fa-solid fa-file-excel me-1"></i> Download Template Excel
-                        </a>
-                        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#ModalUploadNilai">
-                            <i class="fa-solid fa-upload me-1"></i> Upload Excel Nilai
-                        </button>
-                    <?php } ?>
-                </div>
+                    <div class="col-12 col-md-5">
+                        <label class="form-label small fw-bold text-muted text-uppercase mb-1">
+                            <i class="fa-solid fa-book-open me-1 text-primary"></i>Pilih Mata Pelajaran
+                        </label>
+                        <select class="form-select form-select-sm fw-semibold" onchange="location.href='grade-recap?kelas=<?= $selectedKelasId ?>&id_pengampu=' + this.value;">
+                            <?php if (empty($myAssignments)) { ?>
+                                <option value="">(Belum ada mapel di kelas ini)</option>
+                            <?php } else {
+                                foreach ($myAssignments as $a) { ?>
+                                <option value="<?= $a['id_pengampu'] ?>" <?= (int)$a['id_pengampu'] === $selectedPengampuId ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($a['nama_mapel']) ?> &bull; Guru: <?= htmlspecialchars($a['nama_guru']) ?>
+                                </option>
+                            <?php } } ?>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4 d-flex justify-content-md-end gap-2 mt-2 mt-md-0">
+                        <?php if ($currentAssignment) { ?>
+                            <a href="controllers/template.php?type=nilai_kelas&id_pengampu=<?= $selectedPengampuId ?>" class="btn btn-outline-success btn-sm">
+                                <i class="fa-solid fa-file-excel me-1"></i> Template
+                            </a>
+                            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#ModalUploadNilai">
+                                <i class="fa-solid fa-upload me-1"></i> Upload Nilai
+                            </button>
+                        <?php } ?>
+                    </div>
+                <?php } else { ?>
+                    <!-- Tampilan Guru -->
+                    <div class="col-md-7">
+                        <label class="form-label small fw-bold text-muted text-uppercase">Pilih Kelas & Mata Pelajaran Diampu</label>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-primary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown">
+                                <span>
+                                    <?php if ($currentAssignment) { ?>
+                                        <strong><?= htmlspecialchars($currentAssignment['nama_mapel']) ?></strong> &mdash; Kelas <?= htmlspecialchars($currentAssignment['nama_kelas']) ?> (Tingkat <?= $currentAssignment['tingkat'] ?>)
+                                    <?php } else { ?>
+                                        Belum ada penugasan mengajar
+                                    <?php } ?>
+                                </span>
+                            </button>
+                            <ul class="dropdown-menu w-100 shadow">
+                                <?php foreach ($myAssignments as $a) { ?>
+                                    <li>
+                                        <a class="dropdown-item py-2 <?= (int)$a['id_pengampu'] === $selectedPengampuId ? 'active' : '' ?>" href="grade-recap?id_pengampu=<?= $a['id_pengampu'] ?>">
+                                            <i class="fa-solid fa-chalkboard me-2"></i>
+                                            <strong><?= htmlspecialchars($a['nama_mapel']) ?></strong> &mdash; Kelas <?= htmlspecialchars($a['nama_kelas']) ?>
+                                        </a>
+                                    </li>
+                                <?php } ?>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-5 mt-3 mt-md-0 d-flex justify-content-md-end gap-2">
+                        <?php if ($currentAssignment) { ?>
+                            <a href="controllers/template.php?type=nilai_kelas&id_pengampu=<?= $selectedPengampuId ?>" class="btn btn-outline-success btn-sm">
+                                <i class="fa-solid fa-file-excel me-1"></i> Download Template Excel
+                            </a>
+                            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#ModalUploadNilai">
+                                <i class="fa-solid fa-upload me-1"></i> Upload Excel Nilai
+                            </button>
+                        <?php } ?>
+                    </div>
+                <?php } ?>
             </div>
 
             <?php if (!$currentAssignment) { ?>
                 <div class="alert alert-warning">
-                    <i class="fa-solid fa-triangle-exclamation me-1"></i> Anda belum memiliki penugasan mengajar mata pelajaran di kelas manapun. Silakan hubungi Administrator.
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i> <?= $role === 'admin' ? 'Belum ada mata pelajaran yang ditugaskan pada kelas ini.' : 'Anda belum memiliki penugasan mengajar mata pelajaran di kelas manapun. Silakan hubungi Administrator.' ?>
                 </div>
             <?php } else { ?>
 
                 <!-- Info Header Nilai -->
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                     <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-list-ol me-1 text-primary"></i> Daftar Nilai Siswa (<?= count($students) ?> Siswa)</h6>
                     <small class="text-muted">
                         Mata Pelajaran: <strong><?= htmlspecialchars($currentAssignment['nama_mapel']) ?></strong> &bull; Kelas: <strong><?= htmlspecialchars($currentAssignment['nama_kelas']) ?></strong>
+                        <?php if ($role === 'admin' && !empty($currentAssignment['nama_guru'])) { ?>
+                            &bull; Guru: <strong class="text-primary"><?= htmlspecialchars($currentAssignment['nama_guru']) ?></strong> (<?= htmlspecialchars($currentAssignment['id_guru']) ?>)
+                        <?php } ?>
                     </small>
                 </div>
 

@@ -445,14 +445,15 @@ if ($selectedKelasId === null && $role === 'admin') {
                                     <th class="text-start">Guru Pengampu</th>
                                     <th>Target</th>
                                     <th>Dinilai</th>
-                                    <th style="width: 22%">Progres Pengisian</th>
+                                    <th style="width: 20%">Progres Pengisian</th>
                                     <th>Rata-rata</th>
                                     <th>Status Kelengkapan</th>
+                                    <th style="width: 8%">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if (empty($mapelList)) { ?>
-                                    <tr><td colspan="8" class="text-center py-4 text-muted">Belum ada penugasan mapel di kelas ini.</td></tr>
+                                    <tr><td colspan="9" class="text-center py-4 text-muted">Belum ada penugasan mapel di kelas ini.</td></tr>
                                 <?php } else {
                                     $no = 1;
                                     foreach ($mapelList as $m) {
@@ -499,6 +500,13 @@ if ($selectedKelasId === null && $role === 'admin') {
                                                 <i class="fa-solid fa-triangle-exclamation me-1"></i> Kurang <?= $m['siswa_belum'] ?> Siswa
                                             </span>
                                         <?php } ?>
+                                    </td>
+                                    <td>
+                                        <a href="grade-recap?kelas=<?= $selectedKelasId ?>&id_pengampu=<?= (int)$m['id_pengampu'] ?>"
+                                           class="btn btn-outline-primary btn-sm py-1 px-2"
+                                           title="Input / Kelola Nilai Mapel Ini">
+                                            <i class="fa-solid fa-pen-to-square me-1"></i> Nilai
+                                        </a>
                                     </td>
                                 </tr>
                                 <?php } } ?>

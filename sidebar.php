@@ -61,6 +61,12 @@ function navActive(string $target, string $current): string {
 
                 <li class="sidebar-section-title">Monitoring & Cetak</li>
                 <li class="nav-item">
+                    <a class="nav-link <?= navActive('grade-recap', $currentX) ?>" href="grade-recap">
+                        <i class="fa-solid fa-pen-to-square text-primary"></i>
+                        <span>Input Nilai STS</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link <?= navActive('grade-monitor', $currentX) ?>" href="grade-monitor">
                         <i class="fa-solid fa-chart-pie text-info"></i>
                         <span>Monitor Penilaian</span>

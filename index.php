@@ -141,7 +141,7 @@ switch ($x) {
         break;
 
     case 'grade-recap':
-        if (($_SESSION["role"] ?? '') === "guru") {
+        if (in_array($_SESSION["role"] ?? '', ['guru', 'admin'])) {
             $page = "grade-recap.php";
         } else {
             $page = "home.php";

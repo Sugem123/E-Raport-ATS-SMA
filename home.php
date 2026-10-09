@@ -102,7 +102,10 @@ $nama = $_SESSION['nama'] ?? 'Pengguna';
                         Pantau status pengisian nilai per rombel/mapel secara real-time dan cetak rapor hasil belajar secara massal.
                     </p>
                 </div>
-                <div class="d-flex gap-2">
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="grade-recap" class="btn btn-outline-primary px-3 py-2">
+                        <i class="fa-solid fa-pen-to-square me-1"></i> Input Nilai
+                    </a>
                     <a href="grade-monitor" class="btn btn-primary px-3 py-2 shadow-sm">
                         <i class="fa-solid fa-gauge-high me-1"></i> Buka Monitor Kelas
                     </a>
