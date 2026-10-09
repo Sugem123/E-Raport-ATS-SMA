@@ -347,7 +347,7 @@ $semGanjilGenap = ($semRaw === '2' || stripos($semRaw, 'genap') !== false) ? 'GE
                         <td class="text-center"><?= $no ?></td>
                         <td class="text-center font-monospace"><?= htmlspecialchars($s['nis']) ?></td>
                         <td class="text-center font-monospace"><?= htmlspecialchars($s['nisn'] ?? '-') ?></td>
-                        <td class="fw-semibold ps-2"><?= htmlspecialchars($s['nama']) ?></td>
+                        <td class="fw-semibold ps-2 text-uppercase"><?= htmlspecialchars(mb_strtoupper((string)$s['nama'], 'UTF-8')) ?></td>
                         
                         <!-- Kolom Tanda Tangan Pola Selang-seling Kiri/Kanan -->
                         <?php if ($isGanjil) { ?>

@@ -286,7 +286,7 @@ foreach ($grades as $g) {
             <tr>
                 <td style="width: 13%;">Nama Murid</td>
                 <td style="width: 2%;">:</td>
-                <td style="width: 47%; font-weight: bold;"><?= htmlspecialchars($student['nama']) ?></td>
+                <td style="width: 47%; font-weight: bold; text-transform: uppercase;"><?= htmlspecialchars(mb_strtoupper((string)$student['nama'], 'UTF-8')) ?></td>
                 <td style="width: 15%;">Kelas</td>
                 <td style="width: 2%;">:</td>
                 <td style="width: 21%;"><?= htmlspecialchars($kelasFormatted) ?></td>
@@ -461,7 +461,7 @@ foreach ($grades as $g) {
 
     <!-- Running Footer -->
     <div class="running-footer">
-        <div><?= htmlspecialchars($kelasFormatted) ?> | <?= htmlspecialchars($student['nama']) ?> | <?= htmlspecialchars($student['nis']) ?></div>
+        <div><?= htmlspecialchars($kelasFormatted) ?> | <?= htmlspecialchars(mb_strtoupper((string)$student['nama'], 'UTF-8')) ?> | <?= htmlspecialchars($student['nis']) ?></div>
         <div>Halaman : 1</div>
     </div>
 </div>

@@ -782,7 +782,7 @@ class SimpleXlsx
             $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"><v>' . ($idx + 1) . '</v></c>';
             $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6" t="inlineStr"><is><t>' . htmlspecialchars((string)$s['nis'], ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
             $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6" t="inlineStr"><is><t>' . htmlspecialchars((string)($s['nisn'] ?? '-'), ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
-            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="7" t="inlineStr"><is><t>' . htmlspecialchars((string)$s['nama'], ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="7" t="inlineStr"><is><t>' . htmlspecialchars(mb_strtoupper((string)$s['nama'], 'UTF-8'), ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
 
             foreach ($mapelList as $m) {
                 $idP = (int)$m['id_pengampu'];
@@ -1107,7 +1107,7 @@ class SimpleXlsx
             $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6"><v>' . ($idx + 1) . '</v></c>';
             $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6" t="inlineStr"><is><t>' . htmlspecialchars((string)$s['nis'], ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
             $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="6" t="inlineStr"><is><t>' . htmlspecialchars((string)($s['nisn'] ?? '-'), ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
-            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="7" t="inlineStr"><is><t>' . htmlspecialchars((string)$s['nama'], ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
+            $sheetData .= '<c r="' . self::colLetter($cIdx++) . $rowIdx . '" s="7" t="inlineStr"><is><t>' . htmlspecialchars(mb_strtoupper((string)$s['nama'], 'UTF-8'), ENT_QUOTES | ENT_XML1, 'UTF-8') . '</t></is></c>';
 
             foreach ($mapelList as $m) {
                 $idP = (int)$m['id_pengampu'];
